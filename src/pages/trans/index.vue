@@ -1,0 +1,620 @@
+<template>
+    <div>
+        <h1 class="page-title">EZ-work AI文档翻译</h1>
+        <div class="container">
+            <div class="blank"></div>
+            <div class="left">
+                <div class="upload-container">
+                    <el-upload class="dropzone" drag :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="1" :on-success="uploadSuccess">
+                        <template #tip>
+                            仅支持word、excel、ppt相关格式，文件大小≤10mb
+                        </template>
+                        <div class="wait-upload">
+                            <button class="upload_btn" id="upload_btn" type="button">
+                                <span></span>
+                                <img :src="uploadPng" />
+                                <span>上传文档</span>
+                                <span></span>
+                            </button>
+                        </div>
+                    </el-upload>
+                </div>
+                <div class="form-container">
+                    <el-form ref="form" :model="form" label-width="auto" :show-message="false" :rules="rules">
+                        <el-form-item label="" required prop="file_name">
+                            <el-input type="hidden" v-model="form.file_name"></el-input>
+                        </el-form-item>
+                        <el-form-item label="服务商" required prop="server">
+                            <el-select v-model="form.server" placeholder="请选择服务商" @change="saveValue">
+                                <el-option value="openai" label="OpenAI"></el-option>
+                                <el-option value="member" label="EZ-work 会员"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <template v-if="form.server=='openai'">
+                            <el-form-item label="接口地址" required prop="api_url">
+                                <el-input v-model="form.api_url" placeholder="请输入接口（base_url）地址"></el-input>
+                            </el-form-item>
+                            <el-form-item label="API Key" required prop="api_key">
+                                <el-input v-model="form.api_key" placeholder="请输入OpenAI的API KEY" show-password>></el-input>
+                            </el-form-item>
+                        </template>
+                        <el-form-item label="模型" required prop="model">
+                            <el-select v-model="form.model" placeholder="请选择模型">
+                                <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="翻译语言" required prop="lang">
+                            <el-select v-model="form.lang" placeholder="请选择翻译语言">
+                                <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="译文形式" required prop="type">
+                            <el-select v-model="form.type" placeholder="请选择译文形式">
+                                <el-option value="translation" label="仅译文"></el-option>
+                                <el-option value="both" label="原文+译文"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="提示语" required prop="system">
+                            <el-input v-model="form.system" autosize type="textarea" placeholder="请输入系统翻译提示词"></el-input>
+                        </el-form-item>
+                        <el-form-item label="线程数" required>
+                            <el-input-number style="width:100%" :min="10" :max="100" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
+                        </el-form-item>
+                        <div class="center form-btns">
+                            <div class="check-container">
+                                <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+                            </div>
+                            <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate('pc')">立即翻译</el-button>
+                        </div>
+                    </el-form>
+                </div>
+            </div>
+            <div class="right">
+                <div class="download-container">
+                    <div class="translate-loading" v-if="translating">
+                        <img :src="finishPng" />
+                        <el-progress :percentage="percentage" :text-inside="true" :stroke-width="15" status="success" />
+                        <p class="process-tip">翻译中,请稍候...</p>
+                    </div>
+                    <div class="translated center" v-if="translated">
+                        <img :src="completedPng" />
+                        <p class="completed-text">{{target_tip}}</p>
+                        <a class="download-button" :href="target_url">下载</a>
+                    </div>
+                </div>
+            </div>
+            <div class="blank"></div>
+        </div>
+        <div class="static center form-btns hide">
+            <div class="check-container">
+                <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+            </div>
+            <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate('mobile')">立即翻译</el-button>
+        </div>
+        <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
+            <div class="translate-container">
+                <div class="translate-loading"  v-if="translating">
+                    <img :src="finishPng" />
+                    <el-progress :percentage="percentage" :text-inside="true" :stroke-width="15" status="success" />
+                    <p class="process-tip">翻译中,请稍候...</p>
+                </div>
+                <div class="translated center" v-if="translated">
+                    <img :src="completedPng" />
+                    <p class="completed-text">{{target_tip}}</p>
+                    <a class="download-button" :href="target_url">下载</a>
+                </div>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+<script>
+    const API_URL=import.meta.env.VITE_API_URL
+    import { checkOpenAI,transalteFile,transalteProcess } from '@/api/trans'
+    import uploadPng from '@assets/upload.png'
+    import loadingPng from '@assets/loading.gif'
+    import finishPng from '@assets/finish.png'
+    import completedPng from '@assets/completed.png'
+    export default{
+        setup(){
+            // this.form.server=localStorage.getItem("server")
+            // this.form.api_url=localStorage.getItem("api_url")
+            // this.form.api_key=localStorage.getItem("api_key")
+            // this.form.model=localStorage.getItem("model")
+            // this.form.lang=localStorage.getItem("lang")
+            // this.form.type=localStorage.getItem("type")
+            // this.form.system=localStorage.getItem("system")
+            // this.form.threads=localStorage.getItem("threads")
+        },
+        data(){
+            return {
+                uploaded:false,
+                translated:false,
+                translating:false,
+                checking:false,
+                translateDialog:false,
+                target_count:"",
+                target_time:"",
+                target_url:"",
+                percentage:0,
+                check_text:"检查",
+                form:{
+                    file_name:"",
+                    server:localStorage.getItem("server") || "openai",
+                    api_url:"https://api.openai.com",
+                    api_key:"",
+                    model:"gpt-3.5-turbo-0125",
+                    lang:"中文",
+                    type:"translation",
+                    uuid:"",
+                    system:"你是一个文档翻译助手，请将以下文本翻译成{target_lang}，如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。保留多余空格。",
+                    threads:10,
+
+                },
+                models:['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview'],
+                langs:['中文','日语','俄语','阿拉伯语','西班牙语'],
+                upload_url:"http://127.0.0.1:8000/upload",
+                rules: {
+                    file_name: [
+                        { required: true, message: '请上传文件', trigger: 'blur' },
+                    ],
+                    server: [
+                        { required: true, message: '请选择供应商', trigger: 'blur' },
+                    ],
+                    type: [
+                        { required: true, message: '请选择译文形式', trigger: 'blur' },
+                    ],
+                    model: [
+                        { required: true, message: '请选择模型', trigger: 'blur' },
+                    ],
+                    lang: [
+                        { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
+                    ],
+                    system: [
+                        { required: true, message: '请填写系统提示语', trigger: 'blur' },
+                    ]
+                },
+                uploadPng,
+                loadingPng,
+                finishPng,
+                completedPng,
+            }
+        },
+        computed:{
+            target_tip(){
+                return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
+            }
+        },
+        methods:{
+            check(){
+                this.checking=true
+                this.check_text="检查中..."
+                checkOpenAI(this.form).then(data=>{
+                    this.checking=false
+                    if(data.code==0){
+                        this.check_text="成功"
+                    }else{
+                        this.check_text="失败"
+                    }
+                    
+                }).catch(err=>{
+                    this.checking=false
+                    this.check_text="失败"
+                })
+            },
+            translate(source){
+                this.$refs.form.validate((valid,messages) => {
+                    if(valid){
+                        this.translating=true
+                        this.process(source)
+                        if(source=="mobile"){
+                            this.translateDialog=true
+                        }
+                        transalteFile(this.form).then(data=>{
+                            if(data.code==0){
+                                this.translating=false
+                                this.translated=true
+                                this.target_url=API_URL+data.data.url
+                                this.target_count=data.data.count
+                                this.target_time=data.data.time
+                            }else{
+                                this.$message({
+                                    message:data.message,
+                                    type:"error",
+                                })
+                            }
+                        }).catch(data=>{
+                            this.translating=false
+                        })
+                    }else{
+                        for(var field in messages){
+                            messages[field].forEach(message=>{
+                                this.$message({
+                                    message:message['message'],
+                                    type:"error",
+                                })
+                            })
+                        }
+                    }
+                   
+                })
+            },
+            process(source){
+                transalteProcess({uuid:this.form.uuid}).then(data=>{
+                    if(data.data.process==1){
+                        if(source=="mobile"){
+                            this.translateDialog=true                            
+                        }
+                        this.translating=false
+                        this.translated=true
+                        this.target_url=API_URL+data.data.url
+                        this.target_count=data.data.count
+                        this.target_time=data.data.time
+                    }else{
+                        setTimeout(()=>this.process(source), 1000)
+                    }
+                    if(data.data.process!=""){
+                        this.percentage=(parseFloat(data.data.process)*100).toFixed(1)
+                    }
+                })
+            },
+            uploadSuccess(data){
+                if(data.code==0){
+                    this.form.file_name=data.data.filename
+                    this.form.uuid=data.data.uuid
+                    this.uploaded=true
+                }
+                
+            }
+        }
+    }
+
+</script>
+<style type="text/css">
+    .form-container .el-input-number .el-input__inner{
+        text-align: left;
+    }
+</style>
+<style type="text/css">
+    .page-title{
+        margin-top: 15px;
+        margin-bottom: 20px;
+        font-size: 24px;
+        font-weight: bold;
+        font-family: "PingFang-SC-Bold";
+        text-align: center;
+    }
+    .container{
+        display: flex;
+        align-self: center;
+        flex-wrap: wrap;
+        margin:8px;
+    }
+    .left,.right{
+        flex: auto 1;
+    }
+    .container .blank{
+        flex: auto 0;
+        width: 10%;
+    }
+    .dropzone {
+        width: calc(100% - 48px);
+        height: calc(100% - 48px);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+    }
+    .dropzone .el-upload{
+        margin-bottom: 8px;
+    }
+    .dropzone .el-upload,.dropzone .el-upload-dragger{
+        width: 100%;
+        height: 100%;
+        background-color: #F5F6FA;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .center{
+        text-align: center;
+    }
+    .hide{
+        display: none;
+    }
+    .upload-container,.form-container,.download-container{
+        border: 1px solid gray;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid #E0E4F7;
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        min-width: 300px;
+    }
+    .upload-container{
+        text-align: center;
+    }
+    .upload-container{
+        height: 260px;
+    }
+    .form-container{
+        height: 480px;
+        overflow: auto;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .upload-container{
+        margin-bottom: 16px;
+    }
+    .upload-container,.form-container{
+        margin-right: 16px;
+    }
+    .download-container{
+        height: 758px;
+        text-align: center;
+    }
+    .form-container form{
+        width: calc(100% - 48px);
+        height: 100%;
+    }
+    .item-container{
+        line-height: 50px;
+        display: flex;
+        flex-direction: row;
+        margin-bottom: 16px;
+    }
+    .item-container .required{
+        color: #FF0000;
+        font-size: 14px;
+    }
+    .item-container > span{
+        flex: atuo 0;
+        font-size: 14px;
+        font-family: "PingFang SC";
+        font-weight: 400;
+        color: #111111;
+        line-height: 38px;
+    }
+    /*.item-container select,.item-container input, .item-container textarea{
+        flex: auto 1;
+        border: 1px solid #DCDEE2;
+    }*/
+    #file_upload{
+        display: none;
+    }
+    .translated img, .translate-loading img{
+        width: 80px;
+        height: 80px;
+    }
+    .translate-btn {
+        line-height: 36px;
+        width: 180px;
+        color: white;
+        border: none;
+        background: #055CF9;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .wait-upload .upload_tip{
+        margin-top: 36px;
+        margin-bottom: 10px;
+        color: #333333;
+        font-size: 16px;
+        font-weight: 400;
+    }
+    .wait-upload span{
+        color: #666666;
+        font-size: 14px;
+        font-weight: 400;
+    }
+    .upload-success{
+        font-family: "PingFang SC";
+        font-weight: bold;
+        font-size: 16px;
+        color: #333333;
+    }
+    .upload-filename{
+        font-family: "PingFang SC";
+        font-weight: 400;
+        font-size: 14px;
+        color: #055CF9;
+        margin-bottom: 13px;
+        margin-top: 23px;
+    }
+    .re-upload{
+        font-family: "PingFang SC";
+        font-weight: 400;
+        font-size: 12px;
+        color: #666666;
+    }
+    .download-button{
+        line-height: 36px;
+        width: 120px;
+        display: inline-block;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        background: #055CF9;
+    }
+    #upload_btn{
+        font-family: "PingFang SC";
+        width: 180px;
+        height: 40px;
+        background-color: #F4F8FF;
+        border: 1px dashed #055CF9;
+        flex-direction: row;
+        align-items: center;
+        display: inline-flex;
+        text-align: center;
+    }
+    #upload_btn img{
+        width: 20px;
+        height: 20px;
+        margin-right: 9px;
+        flex: auto 0;
+    }
+    #upload_btn span:first-child, #upload_btn span:last-child{
+        flex: auto 1;
+    }
+    #upload_btn span{
+        font-size: 16px;
+        font-family: "PingFang SC";
+        font-weight: bold;
+        color: #055CF9;
+    }
+    .translate_btn{
+        line-height: 36px;
+        width: 180px;
+        color: white;
+        border: none;
+        background: #055CF9;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    /*form input,form select,form textarea{
+        line-height: 32px;
+        width: 220px;
+        height: 32px;
+        padding: 2px;
+        font-size: 14.6px;
+        padding-left: 16px;
+    }
+    form select{
+        height: 38px;
+    }
+    form select:after{
+        padding-right: 10px;
+    }
+    textarea.system{
+        height: 120px;
+    }*/
+    .item-container > span{
+        display: inline-block;
+        width: 80px;
+    }
+    .dropzone form{
+        width: 100%;
+    }
+    .model-custom{
+        display: none;
+    }
+    .process-bar{
+        width: 240px;
+        height: 8px;
+        background: #EFEFEF;
+        border-radius: 4px;
+        position: relative;
+    }
+    .process-bar > span{
+        height: 8px;
+        background: #055CF9;
+        border-radius: 4px;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .process-tip{
+        font-size: 16px;
+        font-family: "PingFang SC";
+        font-weight: 400;
+        color: #055CF9;
+    }
+    .completed-text{
+        margin-top: 8px;
+        margin-bottom: 20px;
+    }
+    .form-btns{
+        position: relative;
+        padding-bottom: 15px;
+    }
+    .check-container{
+        position: absolute;
+        left: 12px;
+        display: flex;
+        justify-content: center;
+        flex-direction: row;
+        align-items: center;
+        height: calc(100% - 20px);
+    }
+    .check_btn{
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        line-height: 36px;
+        font-size: 14px;
+        color: #055CF9;
+        text-decoration-line: underline;
+    }
+    .check-status{
+        font-size: 12px;
+        width: 44px;
+        height: 24px;
+        border-radius: 4px;
+        font-weight: 400;
+        display: inline-block;
+        line-height: 24px;
+    }
+    .check-status.success{
+        color: #52C41A;
+        border: 1px solid #A7E1A9;
+
+    }
+    .check-status.fail{
+        background: #FFF2F0;
+        border: 1px solid #FFCCC7;
+        color: #FF4D4F;
+    }
+    .check-loading{
+        display: none;
+        width: 21px;
+        height: 21px;
+    }
+    .api-key-container{
+        position: relative;
+    }
+    .api-key-container img{
+        position: absolute;
+        right: 8px;
+        width: 16px;
+        height: 12px;
+        margin-top: 12px;
+    }
+    .translate-container{
+        text-align: center;
+    }
+    @media screen and (max-width:800px){
+        .container .blank{
+            width: 0%;
+        }
+        .upload-container, .form-container{
+            margin-right: 0px;
+            overflow:visible;
+        }
+        .form-container{
+            height: auto;
+            padding-top: 30px;
+            padding-bottom: 30px;
+            margin-bottom: 77px;
+        }
+        .form-container .form-btns{
+            display: none;
+        }
+        .static.form-btns{
+            display: inline-block;
+            display: inline-block;
+            position: fixed;
+            bottom: 0;
+            width: 100vw;
+            text-align: center;
+            background-color: #FFFFFF;
+            padding: 16px 0;
+        }
+        .static .translate_btn{
+            margin-bottom:0px;
+        }
+        .right{
+            display: none;
+        }
+    }
+</style>
