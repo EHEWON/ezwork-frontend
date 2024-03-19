@@ -5,24 +5,32 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="1" :on-success="uploadSuccess">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :before-remove="delUploadFile">
                         <template #tip>
                             仅支持word、excel、ppt相关格式，文件大小≤10mb
                         </template>
-                        <div class="wait-upload">
-                            <button class="upload_btn" id="upload_btn" type="button">
-                                <span></span>
-                                <img :src="uploadPng" />
-                                <span>上传文档</span>
-                                <span></span>
-                            </button>
-                        </div>
+                        <template #default :uploaded="uploaded">
+                            <div class="has-upload" v-if="uploaded">
+                                <img :src="uploadedPng" />
+                                <div class="upload-success">文件上传成功</div>
+                                <div class="upload-filename"></div>
+                                <small class="re-upload">点击或拖拽重新上传</small>
+                            </div>
+                            <div class="wait-upload" v-else>
+                                <button class="upload_btn" id="upload_btn" type="button">
+                                    <span></span>
+                                    <img :src="uploadPng" />
+                                    <span>上传文档</span>
+                                    <span></span>
+                                </button>
+                            </div>
+                        </template>
                     </el-upload>
                 </div>
                 <div class="form-container">
                     <el-form ref="form" :model="form" label-width="auto" :show-message="false" :rules="rules">
-                        <el-form-item label="" required prop="file_name">
-                            <el-input type="hidden" v-model="form.file_name"></el-input>
+                        <el-form-item label="" required prop="files">
+                            <el-input type="hidden" v-model="form.files"></el-input>
                         </el-form-item>
                         <el-form-item label="服务商" required prop="server">
                             <el-select v-model="form.server" placeholder="请选择服务商" @change="saveValue">
@@ -39,12 +47,12 @@
                             </el-form-item>
                         </template>
                         <el-form-item label="模型" required prop="model">
-                            <el-select v-model="form.model" placeholder="请选择模型">
+                            <el-select v-model="form.model" placeholder="请选择或自定义OpenAI模型" clearable filterable allow-create>
                                 <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="翻译语言" required prop="lang">
-                            <el-select v-model="form.lang" placeholder="请选择翻译语言">
+                        <el-form-item label="翻译语言" required prop="langs">
+                            <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="5">
                                 <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
                             </el-select>
                         </el-form-item>
@@ -55,10 +63,10 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="提示语" required prop="system">
-                            <el-input v-model="form.system" autosize type="textarea" placeholder="请输入系统翻译提示词"></el-input>
+                            <el-input v-model="form.system" autosize type="textarea" :rows="3" placeholder="请输入系统翻译提示词"></el-input>
                         </el-form-item>
                         <el-form-item label="线程数" required>
-                            <el-input-number style="width:100%" :min="10" :max="100" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
+                            <el-input-number style="width:100%" :min="10" :max="40" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
                         </el-form-item>
                         <div class="center form-btns">
                             <div class="check-container">
@@ -71,16 +79,17 @@
             </div>
             <div class="right">
                 <div class="download-container">
-                    <div class="translate-loading" v-if="translating">
-                        <img :src="finishPng" />
-                        <el-progress :percentage="percentage" :text-inside="true" :stroke-width="15" status="success" />
-                        <p class="process-tip">翻译中,请稍候...</p>
-                    </div>
-                    <div class="translated center" v-if="translated">
-                        <img :src="completedPng" />
-                        <p class="completed-text">{{target_tip}}</p>
-                        <a class="download-button" :href="target_url">下载</a>
-                    </div>
+                    <el-card v-for="res in result" class="translate-card">
+                        <template #header>
+                          <div class="card-header">
+                            <span>{{res.file_name}} ({{res.lang}})</span>
+                          </div>
+                        </template>
+                        <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
+                        <template #footer>
+                            <el-link :disabled="res['disabled']" type="primary" :href="res['link']">下载</el-link>
+                        </template>
+                    </el-card>
                 </div>
             </div>
             <div class="blank"></div>
@@ -93,68 +102,62 @@
         </div>
         <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
             <div class="translate-container">
-                <div class="translate-loading"  v-if="translating">
-                    <img :src="finishPng" />
-                    <el-progress :percentage="percentage" :text-inside="true" :stroke-width="15" status="success" />
-                    <p class="process-tip">翻译中,请稍候...</p>
-                </div>
-                <div class="translated center" v-if="translated">
-                    <img :src="completedPng" />
-                    <p class="completed-text">{{target_tip}}</p>
-                    <a class="download-button" :href="target_url">下载</a>
-                </div>
+                <el-card v-for="res in result" class="translate-card">
+                    <template #header>
+                      <div class="card-header">
+                        <span>{{res.file_name}} ({{res.lang}})</span>
+                      </div>
+                    </template>
+                    <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
+                    <template #footer>
+                        <el-link :disabled="res['disabled']" type="primary" :href="res['link']">下载</el-link>
+                    </template>
+                </el-card>
             </div>
         </el-dialog>
     </div>
 </template>
 <script>
     const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,transalteFile,transalteProcess } from '@/api/trans'
+    import { checkOpenAI,transalteFile,transalteProcess,delFile } from '@/api/trans'
+    import uploadedPng from '@assets/uploaded.png'
     import uploadPng from '@assets/upload.png'
     import loadingPng from '@assets/loading.gif'
     import finishPng from '@assets/finish.png'
     import completedPng from '@assets/completed.png'
     export default{
-        setup(){
-            // this.form.server=localStorage.getItem("server")
-            // this.form.api_url=localStorage.getItem("api_url")
-            // this.form.api_key=localStorage.getItem("api_key")
-            // this.form.model=localStorage.getItem("model")
-            // this.form.lang=localStorage.getItem("lang")
-            // this.form.type=localStorage.getItem("type")
-            // this.form.system=localStorage.getItem("system")
-            // this.form.threads=localStorage.getItem("threads")
-        },
         data(){
             return {
                 uploaded:false,
                 translated:false,
-                translating:false,
+                translating:{},
                 checking:false,
                 translateDialog:false,
                 target_count:"",
                 target_time:"",
                 target_url:"",
-                percentage:0,
+                result:{},
                 check_text:"检查",
+                langMultiSelected:true,
                 form:{
-                    file_name:"",
+                    files:[],
                     server:localStorage.getItem("server") || "openai",
-                    api_url:"https://api.openai.com",
-                    api_key:"",
-                    model:"gpt-3.5-turbo-0125",
-                    lang:"中文",
-                    type:"translation",
+                    api_url:localStorage.getItem("api_url") || "https://api.openai.com",
+                    api_key:localStorage.getItem("api_key") || "",
+                    model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
+                    langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
+                    lang:"",
+                    type:localStorage.getItem("type") || "translation",
                     uuid:"",
-                    system:"你是一个文档翻译助手，请将以下文本翻译成{target_lang}，如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。保留多余空格。",
-                    threads:10,
+                    system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本翻译成{target_lang}，如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。保留多余空格。",
+                    threads:localStorage.getItem("threads") || 10,
 
                 },
                 models:['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview'],
-                langs:['中文','日语','俄语','阿拉伯语','西班牙语'],
+                langs:['中文','英语','日语','俄语','阿拉伯语','西班牙语'],
                 upload_url:"http://127.0.0.1:8000/upload",
                 rules: {
-                    file_name: [
+                    files: [
                         { required: true, message: '请上传文件', trigger: 'blur' },
                     ],
                     server: [
@@ -166,13 +169,14 @@
                     model: [
                         { required: true, message: '请选择模型', trigger: 'blur' },
                     ],
-                    lang: [
+                    langs: [
                         { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
                     ],
                     system: [
                         { required: true, message: '请填写系统提示语', trigger: 'blur' },
                     ]
                 },
+                uploadedPng,
                 uploadPng,
                 loadingPng,
                 finishPng,
@@ -182,6 +186,30 @@
         computed:{
             target_tip(){
                 return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
+            }
+        },
+        watch:{
+            form:{
+                handler(o,n){
+                    if(n){
+                        localStorage.setItem("server", n.server)
+                        localStorage.setItem("api_url", n.api_url)
+                        localStorage.setItem("api_key", n.api_key)
+                        localStorage.setItem("model", n.model)
+                        localStorage.setItem("langs", JSON.stringify(n.langs))
+                        localStorage.setItem("type", n.type)
+                        localStorage.setItem("system", n.system)
+                        localStorage.setItem("threads", n.threads)
+                        if(n.files.length>1){
+                            this.langMultiSelected=false
+                        }else{
+                            this.langMultiSelected=true
+                        }
+                    }
+                    
+                },
+                deep:true,
+                immediate:true
             }
         },
         methods:{
@@ -204,26 +232,53 @@
             translate(source){
                 this.$refs.form.validate((valid,messages) => {
                     if(valid){
-                        this.translating=true
-                        this.process(source)
                         if(source=="mobile"){
                             this.translateDialog=true
                         }
-                        transalteFile(this.form).then(data=>{
-                            if(data.code==0){
-                                this.translating=false
-                                this.translated=true
-                                this.target_url=API_URL+data.data.url
-                                this.target_count=data.data.count
-                                this.target_time=data.data.time
-                            }else{
-                                this.$message({
-                                    message:data.message,
-                                    type:"error",
+                        let langs=[]
+                        if(!Array.isArray(this.form.langs)){
+                            langs=[this.form.langs]
+                        }else{
+                            langs=this.form.langs
+                        }
+                        this.result={}
+                        this.form.files.forEach(file=>{
+                            this.form.file_name=file.file_name
+                            langs.forEach(lang=>{
+                                this.form.lang=lang
+                                let uuid=file.uuid+"-"+lang
+                                this.form.uuid=uuid
+                                this.translating[uuid]=true
+                                this.process(uuid,source)
+                                this.result[uuid]={
+                                    file_name:file.file_name,
+                                    uuid:uuid,
+                                    lang:lang,
+                                    percentage:0, 
+                                    disabled:true,
+                                    link:''
+                                }
+                                transalteFile(this.form).then(data=>{
+                                    this.translating[uuid]=false
+                                    if(data.code==0){
+                                        this.translated=true
+                                        this.target_url=API_URL+data.data.url
+                                        this.target_count=data.data.count
+                                        this.target_time=data.data.time
+                                        this.result[uuid]['link']=API_URL+data.data.url
+                                        this.result[uuid]['disabled']=false
+                                        this.result[uuid]['percentage']=100
+                                    }else{
+                                        this.$message({
+                                            message:data.msg,
+                                            type:"error",
+                                        })
+                                    }
+                                }).catch(data=>{
+                                    this.translating[uuid]=false
                                 })
-                            }
-                        }).catch(data=>{
-                            this.translating=false
+                            })
+                            
                         })
                     }else{
                         for(var field in messages){
@@ -238,32 +293,61 @@
                    
                 })
             },
-            process(source){
-                transalteProcess({uuid:this.form.uuid}).then(data=>{
+            process(uuid,source){
+                if(!this.translating[uuid]){
+                    return
+                }
+                transalteProcess({uuid}).then(data=>{
                     if(data.data.process==1){
                         if(source=="mobile"){
                             this.translateDialog=true                            
                         }
-                        this.translating=false
+                        this.translating[uuid]=false
                         this.translated=true
                         this.target_url=API_URL+data.data.url
                         this.target_count=data.data.count
                         this.target_time=data.data.time
+                        this.result[uuid]['link']=API_URL+data.data.url
+                        this.result[uuid]['disabled']=false
                     }else{
-                        setTimeout(()=>this.process(source), 1000)
+                        setTimeout(()=>this.process(uuid,source), 1000)
                     }
                     if(data.data.process!=""){
-                        this.percentage=(parseFloat(data.data.process)*100).toFixed(1)
+                        this.result[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
                     }
+                    console.log(this.result)
                 })
+            },
+            changeFile(){
+                this.uploaded=false
             },
             uploadSuccess(data){
                 if(data.code==0){
-                    this.form.file_name=data.data.filename
-                    this.form.uuid=data.data.uuid
+                    this.form.files.push({
+                        file_name:data.data.filename,
+                        uuid:data.data.uuid
+                    })
                     this.uploaded=true
+                }else{
+                    this.$message({
+                        message:data.msg,
+                        type:"error",
+                    })
                 }
-                
+            },
+            delUploadFile(file, files){
+                delFile(file.name)
+                this.form.files.forEach((item,index)=>{
+                    if(item.file_name==file.name){
+                        this.form.files.splice(index,1)
+                    }
+                })
+                for(let uuid in this.result){
+                    console.log(uuid)
+                    if(this.result[uuid]['file_name']==file.name){
+                        delete this.result[uuid]
+                    }
+                }
             }
         }
     }
@@ -325,6 +409,7 @@
         border: 1px solid gray;
         display: flex;
         justify-content: center;
+        flex-direction: column;
         align-items: center;
         border: 1px solid #E0E4F7;
         background-color: #FFFFFF;
@@ -333,6 +418,7 @@
     }
     .upload-container{
         text-align: center;
+        overflow: auto;
     }
     .upload-container{
         height: 260px;
@@ -352,6 +438,7 @@
     .download-container{
         height: 758px;
         text-align: center;
+        overflow: auto;
     }
     .form-container form{
         width: calc(100% - 48px);
@@ -582,6 +669,12 @@
     }
     .translate-container{
         text-align: center;
+    }
+    .translate-card{
+        width: calc(100% - 30px);
+        margin-bottom: 10px;
+        margin-left: 15px;
+        margin-right: 15px;
     }
     @media screen and (max-width:800px){
         .container .blank{

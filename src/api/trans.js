@@ -9,6 +9,15 @@ export function checkOpenAI(params) {
     });
 }
 
+export function delFile(filename) {
+    return request({
+        url: `/delFile`,
+        method: 'POST',
+        data: {filename}
+    });
+}
+
+
 export function transalteFile(params){
     return request({
         url: `/translate`,
