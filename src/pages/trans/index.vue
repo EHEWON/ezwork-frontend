@@ -155,7 +155,7 @@
                 },
                 models:['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview'],
                 langs:['中文','英语','日语','俄语','阿拉伯语','西班牙语'],
-                upload_url:"http://127.0.0.1:8000/upload",
+                upload_url:API_URL+"/upload",
                 rules: {
                     files: [
                         { required: true, message: '请上传文件', trigger: 'blur' },
