@@ -87,7 +87,7 @@
                         </template>
                         <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
                         <template #footer>
-                            <el-link :disabled="res['disabled']" type="primary" :href="res['link']">下载</el-link>
+                            <el-link :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
                         </template>
                     </el-card>
                 </div>
@@ -110,7 +110,7 @@
                     </template>
                     <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
                     <template #footer>
-                        <el-link :disabled="res['disabled']" type="primary" :href="res['link']">下载</el-link>
+                        <el-link :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
                     </template>
                 </el-card>
             </div>
