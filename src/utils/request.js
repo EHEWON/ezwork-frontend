@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-// import { getToken} from '@/utils/auth'
+import {store} from '@/store'
 import Qs from 'qs'
 // import router from '@/router'
 // import i18n from '@/lang/index' // i18n 国际化
@@ -32,10 +32,8 @@ const service = axios.create({
 // request interceptor
 service.interceptors.request.use(
   config => {
-    // if (store.getters.token) {
-      // config.headers['token'] = getToken();
+    config.headers['token'] = store.token;
       // config.headers['language'] = localStorage.getItem('language')||'zh';
-    // }
     return config
   },
   error => {

@@ -1,6 +1,5 @@
 <template>
     <div>
-        <h1 class="page-title">EZ-work AI文档翻译</h1>
         <div class="container">
             <div class="blank"></div>
             <div class="left">
@@ -28,12 +27,12 @@
                     </el-upload>
                 </div>
                 <div class="form-container">
-                    <el-form ref="form" :model="form" label-width="auto" :show-message="false" :rules="rules">
+                    <el-form ref="transform" :model="form" label-width="auto" :show-message="false" :rules="rules">
                         <el-form-item label="" required prop="files">
                             <el-input type="hidden" v-model="form.files"></el-input>
                         </el-form-item>
                         <el-form-item label="服务商" required prop="server">
-                            <el-select v-model="form.server" placeholder="请选择服务商" @change="saveValue">
+                            <el-select v-model="form.server" placeholder="请选择服务商" disabled @change="saveValue">
                                 <el-option value="openai" label="OpenAI"></el-option>
                                 <el-option value="member" label="EZ-work 会员"></el-option>
                             </el-select>
@@ -72,7 +71,7 @@
                             <div class="check-container">
                                 <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
                             </div>
-                            <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate('pc')">立即翻译</el-button>
+                            <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
                         </div>
                     </el-form>
                 </div>
@@ -98,7 +97,7 @@
             <div class="check-container">
                 <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
             </div>
-            <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate('mobile')">立即翻译</el-button>
+            <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
         </div>
         <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
             <div class="translate-container">
@@ -117,7 +116,8 @@
         </el-dialog>
     </div>
 </template>
-<script>
+<script setup>
+    import {reactive,ref,computed,watch,inject,defineEmits} from 'vue'
     const API_URL=import.meta.env.VITE_API_URL
     import { checkOpenAI,transalteFile,transalteProcess,delFile } from '@/api/trans'
     import uploadedPng from '@assets/uploaded.png'
@@ -125,6 +125,250 @@
     import loadingPng from '@assets/loading.gif'
     import finishPng from '@assets/finish.png'
     import completedPng from '@assets/completed.png'
+    import {store} from '@/store'
+    import {ElMessage} from 'element-plus'
+
+    const uploaded=ref(false)
+    const translated=ref(false)
+    const checking=ref(false)
+    const translateDialog=ref(false)
+    const langMultiSelected=ref(true)
+
+    const translating={}
+    const result=ref({})
+    const target_count=ref("")
+    const target_time=ref("")
+    const target_url=ref("")
+    const check_text=ref("检查")
+    const upload_url=API_URL+"/upload"
+
+    const transform=ref(null)
+
+    const emit=defineEmits(['should-auth'])
+
+    const form=ref({
+        files:[],
+        server:store.level=='vip' ? 'member' : 'openai',
+        api_url:localStorage.getItem("api_url") || "https://api.openai.com",
+        api_key:localStorage.getItem("api_key") || "",
+        model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
+        langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
+        lang:"",
+        type:localStorage.getItem("type") || "translation",
+        uuid:"",
+        system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本翻译成{target_lang}，如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。保留多余空格。",
+        threads:localStorage.getItem("threads") || 10,
+    })
+
+    const models=['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview']
+    const langs=['中文','英语','日语','俄语','阿拉伯语','西班牙语']
+
+    const rules={
+        files: [
+            { required: true, message: '请上传文件', trigger: 'blur' },
+        ],
+        server: [
+            { required: true, message: '请选择供应商', trigger: 'blur' },
+        ],
+        type: [
+            { required: true, message: '请选择译文形式', trigger: 'blur' },
+        ],
+        model: [
+            { required: true, message: '请选择模型', trigger: 'blur' },
+        ],
+        langs: [
+            { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
+        ],
+        system: [
+            { required: true, message: '请填写系统提示语', trigger: 'blur' },
+        ]
+    }
+
+    const target_tip=computed(()=>{
+        return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
+    })
+
+    watch(form,async(o,n)=>{
+        console.log(n)
+        if(n){
+            console.log(n.files)
+            localStorage.setItem("server", n.server)
+            localStorage.setItem("api_url", n.api_url)
+            localStorage.setItem("api_key", n.api_key)
+            localStorage.setItem("model", n.model)
+            localStorage.setItem("langs", JSON.stringify(n.langs))
+            localStorage.setItem("type", n.type)
+            localStorage.setItem("system", n.system)
+            localStorage.setItem("threads", n.threads)
+            if(n.files.length>1){
+                langMultiSelected.value=false
+            }else{
+                langMultiSelected.value=true
+            }
+        }
+    },{ deep: true })
+
+    function check(){
+        checking.value=true
+        check_text.value="检查中..."
+        checkOpenAI(form.value).then(data=>{
+            checking.value=false
+            if(data.code==0){
+                check_text.value="成功"
+            }else{
+                check_text.value="失败"
+            }
+            
+        }).catch(err=>{
+            checking.value=false
+            check_text.value="失败"
+        })
+    }
+
+    function translate(transform, source){
+        if(!store.token){
+            emit('should-auth')
+            return
+        }
+        transform.validate((valid,messages) => {
+            if(valid){
+                if(source=="mobile"){
+                    translateDialog.value=true
+                }
+                let langs=[]
+                if(!Array.isArray(form.value.langs)){
+                    langs=[form.value.langs]
+                }else{
+                    langs=form.value.langs
+                }
+                result.value={}
+                form.value.files.forEach(file=>{
+                    form.value.file_name=file.file_name
+                    langs.forEach(lang=>{
+                        form.value.lang=lang
+                        let uuid=file.uuid+"-"+lang
+                        form.value.uuid=uuid
+                        translating[uuid]=true
+                        console.log(translating)
+                        process(uuid,source)
+                        result.value[uuid]={
+                            file_name:file.file_name,
+                            uuid:uuid,
+                            lang:lang,
+                            percentage:0, 
+                            disabled:true,
+                            link:''
+                        }
+                        transalteFile(form.value).then(data=>{
+                            translating[uuid]=false
+                            if(data.code==0){
+                                translated.value=true
+                                target_url.value=API_URL+data.data.url
+                                target_count.value=data.data.count
+                                target_time.value=data.data.time
+                                result.value[uuid]['link']=API_URL+data.data.url
+                                result.value[uuid]['disabled']=false
+                                result.value[uuid]['percentage']=100
+                            }else{
+                                ElMessage({
+                                    message:data.msg,
+                                    type:"error",
+                                })
+                            }
+                        }).catch(data=>{
+                            translating[uuid]=false
+                        })
+                    })
+                    
+                })
+            }else{
+                for(var field in messages){
+                    messages[field].forEach(message=>{
+                        ElMessage({
+                            message:message['message'],
+                            type:"error",
+                        })
+                    })
+                }
+            }
+           
+        })
+    }
+
+    function process(uuid,source){
+        console.log(translating)
+        console.log(uuid)
+        if(!translating[uuid]){
+            return
+        }
+        transalteProcess({uuid}).then(data=>{
+            if(data.data.process==1){
+                if(source=="mobile"){
+                    translateDialog.value=true                            
+                }
+                // Reflect.set(translating, uuid, false)
+                translating[uuid]=false
+                translated.value=true
+                target_url.value=API_URL+data.data.url
+                target_count.value=data.data.count
+                target_time.value=data.data.time
+                result.value[uuid]['link']=API_URL+data.data.url
+                result.value[uuid]['disabled']=false
+            }else{
+                setTimeout(()=>process(uuid,source), 1000)
+            }
+            if(data.data.process!=""){
+                result.value[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
+            }
+            console.log(result)
+        })
+    }
+
+    function changeFile(){
+        uploaded.value=false
+    }
+
+    function uploadSuccess(data){
+        if(data.code==0){
+            form.value.files.push({
+                file_name:data.data.filename,
+                uuid:data.data.uuid
+            })
+            uploaded.value=true
+        }else{
+            ElMessage({
+                message:data.msg,
+                type:"error",
+            })
+        }
+    }
+
+    function delUploadFile(file, files){
+        delFile(file.name)
+        form.value.files.forEach((item,index)=>{
+            if(item.file_name==file.name){
+                form.value.files.splice(index,1)
+            }
+        })
+        for(let uuid in this.result){
+            if(result.value[uuid]['file_name']==file.name){
+                delete result.value[uuid]
+            }
+        }
+    }
+
+    store.setTitle("EZ-work AI文档翻译")
+
+</script>
+<!-- <script>
+    const API_URL=import.meta.env.VITE_API_URL
+    import { checkOpenAI,transalteFile,transalteProcess,delFile } from '@/api/trans'
+    import uploadedPng from '@assets/uploaded.png'
+    import uploadPng from '@assets/upload.png'
+    import loadingPng from '@assets/loading.gif'
+    import finishPng from '@assets/finish.png'
+    import completedPng from '@assets/completed.png'
+    import {store} from '@/store'
     export default{
         data(){
             return {
@@ -141,7 +385,7 @@
                 langMultiSelected:true,
                 form:{
                     files:[],
-                    server:localStorage.getItem("server") || "openai",
+                    server:store.level=='vip' ? 'member' : 'openai',
                     api_url:localStorage.getItem("api_url") || "https://api.openai.com",
                     api_key:localStorage.getItem("api_key") || "",
                     model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
@@ -230,6 +474,9 @@
                 })
             },
             translate(source){
+                if(!store.token){
+
+                }
                 this.$refs.form.validate((valid,messages) => {
                     if(valid){
                         if(source=="mobile"){
@@ -269,7 +516,7 @@
                                         this.result[uuid]['disabled']=false
                                         this.result[uuid]['percentage']=100
                                     }else{
-                                        this.$message({
+                                        ElMessage({
                                             message:data.msg,
                                             type:"error",
                                         })
@@ -283,7 +530,7 @@
                     }else{
                         for(var field in messages){
                             messages[field].forEach(message=>{
-                                this.$message({
+                                ElMessage({
                                     message:message['message'],
                                     type:"error",
                                 })
@@ -329,7 +576,7 @@
                     })
                     this.uploaded=true
                 }else{
-                    this.$message({
+                    ElMessage({
                         message:data.msg,
                         type:"error",
                     })
@@ -349,10 +596,14 @@
                     }
                 }
             }
+        },
+        setup(){
+            console.log(store.level)
+            store.setTitle("EZ-work AI文档翻译")
         }
     }
 
-</script>
+</script> -->
 <style type="text/css">
     .form-container .el-input-number .el-input__inner{
         text-align: left;
