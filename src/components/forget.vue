@@ -13,8 +13,8 @@
         <el-form-item label="" prop="password" required>
             <el-input v-model="user.password" type="password" show-password placeholder="设置新密码" />
         </el-form-item>
-        <el-form-item label="" prop="password2" required>
-            <el-input v-model="user.password2" type="password" show-password placeholder="再次新密码" />
+        <el-form-item label="" prop="password_confirmation" required>
+            <el-input v-model="user.password_confirmation" type="password" show-password placeholder="再次新密码" />
         </el-form-item>
         <el-form-item label="" class="center">
             <el-button type="primary" class="btn" color="#055CF9" @click="doForget(form)">提交</el-button>
@@ -33,7 +33,7 @@
         email:"",
         code:"",
         password:"",
-        password2:""
+        password_confirmation:""
     })
     const send_text=ref("发送")
     const seconds=ref("60")
@@ -49,14 +49,14 @@
         password: [
             { required: true, message: '请填写密码', trigger: 'blur' },
         ],
-        password2: [
+        password_confirmation: [
             { required: true, message: '请填写确认密码', trigger: 'blur' },
         ]
     })
     function doForget(form){
         form.validate((valid,fields)=>{
             if(valid){
-                if(user.password!=user.password2){
+                if(user.password!=user.password_confirmation){
                     ElMessage({
                         message:"两次密码输入不一致",
                         type:"error",

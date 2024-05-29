@@ -22,10 +22,12 @@
     </el-form>
 </template>
 <script setup>
-    import { ref,reactive } from 'vue'
+    import { ref,reactive,defineEmits } from 'vue'
     import {registerSendEmail,register} from '@/api/auth'
     import { ElMessage } from 'element-plus'
     import {store} from '@/store/index'
+
+    const emit=defineEmits(['success'])
     const user=reactive({
         email:"",
         code:"",

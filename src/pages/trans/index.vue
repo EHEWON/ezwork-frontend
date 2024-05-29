@@ -140,7 +140,7 @@
     const target_time=ref("")
     const target_url=ref("")
     const check_text=ref("检查")
-    const upload_url=API_URL+"/upload"
+    const upload_url=API_URL+"/api/upload"
 
     const transform=ref(null)
 
@@ -244,6 +244,7 @@
                 result.value={}
                 form.value.files.forEach(file=>{
                     form.value.file_name=file.file_name
+                    form.value.file_path=file.file_path
                     langs.forEach(lang=>{
                         form.value.lang=lang
                         let uuid=file.uuid+"-"+lang
@@ -253,6 +254,7 @@
                         process(uuid,source)
                         result.value[uuid]={
                             file_name:file.file_name,
+                            file_path:file.file_path,
                             uuid:uuid,
                             lang:lang,
                             percentage:0, 
@@ -260,21 +262,21 @@
                             link:''
                         }
                         transalteFile(form.value).then(data=>{
-                            translating[uuid]=false
-                            if(data.code==0){
-                                translated.value=true
-                                target_url.value=API_URL+data.data.url
-                                target_count.value=data.data.count
-                                target_time.value=data.data.time
-                                result.value[uuid]['link']=API_URL+data.data.url
-                                result.value[uuid]['disabled']=false
-                                result.value[uuid]['percentage']=100
-                            }else{
-                                ElMessage({
-                                    message:data.msg,
-                                    type:"error",
-                                })
-                            }
+                            // translating[uuid]=false
+                            // if(data.code==0){
+                            //     translated.value=true
+                            //     target_url.value=API_URL+data.data.url
+                            //     target_count.value=data.data.count
+                            //     target_time.value=data.data.time
+                            //     result.value[uuid]['link']=API_URL+data.data.url
+                            //     result.value[uuid]['disabled']=false
+                            //     result.value[uuid]['percentage']=100
+                            // }else{
+                            //     ElMessage({
+                            //         message:data.msg,
+                            //         type:"error",
+                            //     })
+                            // }
                         }).catch(data=>{
                             translating[uuid]=false
                         })
@@ -331,6 +333,7 @@
     function uploadSuccess(data){
         if(data.code==0){
             form.value.files.push({
+                file_path:data.data.filepath,
                 file_name:data.data.filename,
                 uuid:data.data.uuid
             })
@@ -344,13 +347,17 @@
     }
 
     function delUploadFile(file, files){
-        delFile(file.name)
+        let filepath=''
         form.value.files.forEach((item,index)=>{
             if(item.file_name==file.name){
+                filepath=item.file_path
                 form.value.files.splice(index,1)
             }
         })
-        for(let uuid in this.result){
+        delFile(filepath)
+        console.log(result.value)
+        for(let uuid in result.value){
+
             if(result.value[uuid]['file_name']==file.name){
                 delete result.value[uuid]
             }

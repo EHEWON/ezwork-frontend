@@ -3,24 +3,24 @@ import request from '@/utils/request'
 // 检查是否可用
 export function checkOpenAI(params) {
     return request({
-        url: `/check`,
+        url: `/api/check`,
         method: 'POST',
         data: params
     });
 }
 
-export function delFile(filename) {
+export function delFile(filepath) {
     return request({
-        url: `/delFile`,
+        url: `/api/delFile`,
         method: 'POST',
-        data: {filename}
+        data: {filepath}
     });
 }
 
 
 export function transalteFile(params){
     return request({
-        url: `/translate`,
+        url: `/api/translate`,
         method: 'POST',
         data: params
     });
@@ -28,7 +28,7 @@ export function transalteFile(params){
 
 export function transalteProcess(params){
     return request({
-        url: `/process`,
+        url: `/api/process`,
         method: 'POST',
         data: params
     });
