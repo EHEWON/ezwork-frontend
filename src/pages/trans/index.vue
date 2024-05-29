@@ -77,6 +77,31 @@
                 </div>
             </div>
             <div class="right">
+                <div class="translated-container">
+                    <div class="translated-header">
+                        <h2 style="display: inline-block;">翻译任务列表</h2>
+                        <span class="storage">存储空间(80M)</span>
+                        <el-progress class="translated-process" :percentage="50" />
+                    </div>
+                    <el-table :data="translatesData" fit flexible>
+                        <el-table-column prop="origin_filename" label="文档名称" />
+                        <el-table-column prop="status_name" label="任务状态" />
+                        <el-table-column label="操作">
+                            <template #default="scope">
+                                <el-icon v-if="scope.row.status=='done'"  style="margin-right: 21px;cursor: pointer;">
+                                    <el-link :href="API_URL+scope.row.target_filepath" target="_blank">
+                                        <Download />
+                                    </el-link>
+                                </el-icon>
+                                <el-icon style="cursor: pointer;"><Close @click="delTransFile(scope.row.id)" /></el-icon>
+                              </template>
+                        </el-table-column>
+                    </el-table>
+                    <div style="margin-top: 10px;display: flex;justify-content: space-between;">
+                        <el-pagination layout="prev, pager, next" :total="translatesTotal" :page-size="translatesLimit" @current-change="getTranslatesData" />
+                        <el-button type="danger" text plain link @click="delAllTransFile">删除全部</el-button>
+                    </div>
+                </div>
                 <div class="download-container">
                     <el-card v-for="res in result" class="translate-card">
                         <template #header>
@@ -117,16 +142,16 @@
     </div>
 </template>
 <script setup>
-    import {reactive,ref,computed,watch,inject,defineEmits} from 'vue'
+    import {reactive,ref,computed,watch,inject,defineEmits,onMounted} from 'vue'
     const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,transalteFile,transalteProcess,delFile } from '@/api/trans'
+    import { checkOpenAI,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate } from '@/api/trans'
     import uploadedPng from '@assets/uploaded.png'
     import uploadPng from '@assets/upload.png'
     import loadingPng from '@assets/loading.gif'
     import finishPng from '@assets/finish.png'
     import completedPng from '@assets/completed.png'
     import {store} from '@/store'
-    import {ElMessage} from 'element-plus'
+    import {ElMessage,ElMessageBox} from 'element-plus'
 
     const uploaded=ref(false)
     const translated=ref(false)
@@ -141,6 +166,10 @@
     const target_url=ref("")
     const check_text=ref("检查")
     const upload_url=API_URL+"/api/upload"
+
+    const translatesData=ref([]);
+    const translatesTotal=ref(0);
+    const translatesLimit=ref(10);
 
     const transform=ref(null)
 
@@ -207,6 +236,10 @@
             }
         }
     },{ deep: true })
+
+    onMounted(()=>{
+        getTranslatesData(1)
+    })
 
     function check(){
         checking.value=true
@@ -364,253 +397,47 @@
         }
     }
 
+    function getTranslatesData(page){
+        translates({page,limit:translatesLimit.value}).then(data=>{
+            if(data.code==0){
+                console.log(data.data.data)
+                translatesData.value=data.data.data
+                translatesTotal.value=data.data.total
+            }
+        })
+    }
+
+    function delTransFile(id){
+        ElMessageBox.confirm('是否确定要删除？','Warning',{
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }).then(() => {
+            delTranslate(id).then((data)=>{
+                if(data.code==0){
+                    translatesData.value=translatesData.value.filter(item=>item.id!=id)
+                }
+            })
+        })
+    }
+
+    function delAllTransFile(){
+        ElMessageBox.confirm('是否确定要删除全部？','Warning',{
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }).then(() => {
+            delAllTranslate().then((data)=>{
+                if(data.code==0){
+                    translatesData.value=[]
+                }
+            })
+        })
+    }
+
     store.setTitle("EZ-work AI文档翻译")
 
 </script>
-<!-- <script>
-    const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,transalteFile,transalteProcess,delFile } from '@/api/trans'
-    import uploadedPng from '@assets/uploaded.png'
-    import uploadPng from '@assets/upload.png'
-    import loadingPng from '@assets/loading.gif'
-    import finishPng from '@assets/finish.png'
-    import completedPng from '@assets/completed.png'
-    import {store} from '@/store'
-    export default{
-        data(){
-            return {
-                uploaded:false,
-                translated:false,
-                translating:{},
-                checking:false,
-                translateDialog:false,
-                target_count:"",
-                target_time:"",
-                target_url:"",
-                result:{},
-                check_text:"检查",
-                langMultiSelected:true,
-                form:{
-                    files:[],
-                    server:store.level=='vip' ? 'member' : 'openai',
-                    api_url:localStorage.getItem("api_url") || "https://api.openai.com",
-                    api_key:localStorage.getItem("api_key") || "",
-                    model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
-                    langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
-                    lang:"",
-                    type:localStorage.getItem("type") || "translation",
-                    uuid:"",
-                    system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本翻译成{target_lang}，如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。保留多余空格。",
-                    threads:localStorage.getItem("threads") || 10,
-
-                },
-                models:['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview'],
-                langs:['中文','英语','日语','俄语','阿拉伯语','西班牙语'],
-                upload_url:API_URL+"/upload",
-                rules: {
-                    files: [
-                        { required: true, message: '请上传文件', trigger: 'blur' },
-                    ],
-                    server: [
-                        { required: true, message: '请选择供应商', trigger: 'blur' },
-                    ],
-                    type: [
-                        { required: true, message: '请选择译文形式', trigger: 'blur' },
-                    ],
-                    model: [
-                        { required: true, message: '请选择模型', trigger: 'blur' },
-                    ],
-                    langs: [
-                        { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
-                    ],
-                    system: [
-                        { required: true, message: '请填写系统提示语', trigger: 'blur' },
-                    ]
-                },
-                uploadedPng,
-                uploadPng,
-                loadingPng,
-                finishPng,
-                completedPng,
-            }
-        },
-        computed:{
-            target_tip(){
-                return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
-            }
-        },
-        watch:{
-            form:{
-                handler(o,n){
-                    if(n){
-                        localStorage.setItem("server", n.server)
-                        localStorage.setItem("api_url", n.api_url)
-                        localStorage.setItem("api_key", n.api_key)
-                        localStorage.setItem("model", n.model)
-                        localStorage.setItem("langs", JSON.stringify(n.langs))
-                        localStorage.setItem("type", n.type)
-                        localStorage.setItem("system", n.system)
-                        localStorage.setItem("threads", n.threads)
-                        if(n.files.length>1){
-                            this.langMultiSelected=false
-                        }else{
-                            this.langMultiSelected=true
-                        }
-                    }
-                    
-                },
-                deep:true,
-                immediate:true
-            }
-        },
-        methods:{
-            check(){
-                this.checking=true
-                this.check_text="检查中..."
-                checkOpenAI(this.form).then(data=>{
-                    this.checking=false
-                    if(data.code==0){
-                        this.check_text="成功"
-                    }else{
-                        this.check_text="失败"
-                    }
-                    
-                }).catch(err=>{
-                    this.checking=false
-                    this.check_text="失败"
-                })
-            },
-            translate(source){
-                if(!store.token){
-
-                }
-                this.$refs.form.validate((valid,messages) => {
-                    if(valid){
-                        if(source=="mobile"){
-                            this.translateDialog=true
-                        }
-                        let langs=[]
-                        if(!Array.isArray(this.form.langs)){
-                            langs=[this.form.langs]
-                        }else{
-                            langs=this.form.langs
-                        }
-                        this.result={}
-                        this.form.files.forEach(file=>{
-                            this.form.file_name=file.file_name
-                            langs.forEach(lang=>{
-                                this.form.lang=lang
-                                let uuid=file.uuid+"-"+lang
-                                this.form.uuid=uuid
-                                this.translating[uuid]=true
-                                this.process(uuid,source)
-                                this.result[uuid]={
-                                    file_name:file.file_name,
-                                    uuid:uuid,
-                                    lang:lang,
-                                    percentage:0, 
-                                    disabled:true,
-                                    link:''
-                                }
-                                transalteFile(this.form).then(data=>{
-                                    this.translating[uuid]=false
-                                    if(data.code==0){
-                                        this.translated=true
-                                        this.target_url=API_URL+data.data.url
-                                        this.target_count=data.data.count
-                                        this.target_time=data.data.time
-                                        this.result[uuid]['link']=API_URL+data.data.url
-                                        this.result[uuid]['disabled']=false
-                                        this.result[uuid]['percentage']=100
-                                    }else{
-                                        ElMessage({
-                                            message:data.msg,
-                                            type:"error",
-                                        })
-                                    }
-                                }).catch(data=>{
-                                    this.translating[uuid]=false
-                                })
-                            })
-                            
-                        })
-                    }else{
-                        for(var field in messages){
-                            messages[field].forEach(message=>{
-                                ElMessage({
-                                    message:message['message'],
-                                    type:"error",
-                                })
-                            })
-                        }
-                    }
-                   
-                })
-            },
-            process(uuid,source){
-                if(!this.translating[uuid]){
-                    return
-                }
-                transalteProcess({uuid}).then(data=>{
-                    if(data.data.process==1){
-                        if(source=="mobile"){
-                            this.translateDialog=true                            
-                        }
-                        this.translating[uuid]=false
-                        this.translated=true
-                        this.target_url=API_URL+data.data.url
-                        this.target_count=data.data.count
-                        this.target_time=data.data.time
-                        this.result[uuid]['link']=API_URL+data.data.url
-                        this.result[uuid]['disabled']=false
-                    }else{
-                        setTimeout(()=>this.process(uuid,source), 1000)
-                    }
-                    if(data.data.process!=""){
-                        this.result[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
-                    }
-                    console.log(this.result)
-                })
-            },
-            changeFile(){
-                this.uploaded=false
-            },
-            uploadSuccess(data){
-                if(data.code==0){
-                    this.form.files.push({
-                        file_name:data.data.filename,
-                        uuid:data.data.uuid
-                    })
-                    this.uploaded=true
-                }else{
-                    ElMessage({
-                        message:data.msg,
-                        type:"error",
-                    })
-                }
-            },
-            delUploadFile(file, files){
-                delFile(file.name)
-                this.form.files.forEach((item,index)=>{
-                    if(item.file_name==file.name){
-                        this.form.files.splice(index,1)
-                    }
-                })
-                for(let uuid in this.result){
-                    console.log(uuid)
-                    if(this.result[uuid]['file_name']==file.name){
-                        delete this.result[uuid]
-                    }
-                }
-            }
-        },
-        setup(){
-            console.log(store.level)
-            store.setTitle("EZ-work AI文档翻译")
-        }
-    }
-
-</script> -->
 <style type="text/css">
     .form-container .el-input-number .el-input__inner{
         text-align: left;
@@ -632,7 +459,7 @@
         margin:8px;
     }
     .left,.right{
-        flex: auto 1;
+        flex: 1 1;
     }
     .container .blank{
         flex: auto 0;
@@ -681,8 +508,19 @@
     .upload-container{
         height: 260px;
     }
+    .translated-container{
+        border: 1px solid gray;
+        border: 1px solid #E0E4F7;
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        min-width: 300px;
+        height: 380px;
+        margin-bottom: 16px;
+        padding: 10px;
+        overflow: auto;
+    }
     .form-container{
-        height: 480px;
+        height: 500px;
         overflow: auto;
         margin-top: 20px;
         margin-bottom: 20px;
@@ -694,7 +532,7 @@
         margin-right: 16px;
     }
     .download-container{
-        height: 758px;
+        height: 368px;
         text-align: center;
         overflow: auto;
     }
@@ -933,6 +771,20 @@
         margin-bottom: 10px;
         margin-left: 15px;
         margin-right: 15px;
+    }
+    .translated-header{
+        display: flex;
+        align-items: center;
+    }
+    .translated-header h2{
+        margin-right: 30px;
+    }
+    .translated-header .storage{
+        margin-right: 30px;
+    }
+    .translated-process{
+        width:300px;
+        display: inline-block;
     }
     @media screen and (max-width:800px){
         .container .blank{

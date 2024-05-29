@@ -33,3 +33,25 @@ export function transalteProcess(params){
         data: params
     });
 }
+
+export function translates(params){
+    return request({
+        url: `/api/translates`,
+        method: 'get',
+        params
+    });
+}
+
+export function delTranslate(id){
+    return request({
+        url: `/api/translate/${id}`,
+        method: 'delete'
+    });
+}
+
+export function delAllTranslate(){
+    return request({
+        url: '/api/translate/all',
+        method: 'delete'
+    });
+}
