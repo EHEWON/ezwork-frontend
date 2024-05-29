@@ -68,7 +68,7 @@
                         emit('success')
                     }else{
                         ElMessage({
-                            message:data.msg,
+                            message:data.message,
                             type:"error",
                         })
                     }
@@ -112,7 +112,7 @@
                 },1000)
             }else{
                 ElMessage({
-                    message:data.msg,
+                    message:data.message,
                     type:"error",
                 })
                 disabled.value=false

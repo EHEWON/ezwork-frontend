@@ -7,10 +7,12 @@
             </el-col>
             <el-col :span="6" class="flex-center">
                 <template v-if="store.token">
-                    <div>
-                        <el-button @click="logoutVisible=!logoutVisible">退出登录</el-button>
-                        &nbsp;
-                        <el-text>{{store.username}}</el-text>
+                    <div class="flex-center">
+                        <el-text>{{store.level}}</el-text>
+                        &nbsp;&nbsp;
+                        <el-button @click="changeVisible=true">修改密码</el-button>
+                        &nbsp;&nbsp;
+                        <el-icon><SwitchButton @click="logoutVisible=!logoutVisible" /></el-icon>
                     </div>
                 </template>
                 <template v-else>
@@ -41,6 +43,9 @@
                 </h1>
             </template>
             <forget @return="backToAuth" @success="forgetSuccess"></forget>
+        </el-dialog>
+        <el-dialog v-model="changeVisible" center width="410px" :show-close="false" style="border-radius: 10px;">
+            <change @success="changeSuccess"></change>
         </el-dialog>
         <el-dialog v-model="logoutVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
             <div class="dialog-container">
@@ -77,6 +82,7 @@
     import login from '@/components/login.vue'
     import register from '@/components/register.vue'
     import forget from '@/components/forget.vue'
+    import change from '@/components/change.vue'
     import {ref,provide,watch,defineProps,defineEmits} from 'vue'
     const props=defineProps({
         title:String,
@@ -86,6 +92,7 @@
     const authVisible=ref(false)
     const logoutVisible=ref(false)
     const forgetVisible=ref(false)
+    const changeVisible=ref(false)
     const resetSuccessVisible=ref(false)
     const registerSuccessVisible=ref(false)
     const activeIndex=ref("1")
@@ -130,6 +137,9 @@
     function forgetSuccess(){
         forgetVisible.value=false
         authVisible.value=true
+    }
+    function changeSuccess(){
+        changeVisible.value=false
     }
 
 

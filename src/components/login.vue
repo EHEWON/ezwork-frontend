@@ -44,7 +44,7 @@
                         emit('success')
                     }else{
                         ElMessage({
-                            message:data.msg,
+                            message:data.message,
                             type:"error",
                         })
                     }
