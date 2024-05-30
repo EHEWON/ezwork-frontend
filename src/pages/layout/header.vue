@@ -31,7 +31,7 @@
                 <login @forget="forgetPwd" @success="loginSuccess"></login>
             </template>
             <template v-else>
-                <register> @success="registerSuccess"</register>
+                <register @success="registerSuccess"></register>
             </template>
         </el-dialog>
         <el-dialog v-model="forgetVisible" center width="410px" :show-close="false" style="border-radius: 10px;">
