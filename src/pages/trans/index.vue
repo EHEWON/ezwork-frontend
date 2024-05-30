@@ -243,6 +243,14 @@
         }
     },{ deep: true })
 
+    watch(()=>store.level, (n,o)=>{
+        if(n=='vip'){
+            form.value.server='member'
+        }else{
+            form.value.server='openai'
+        }
+    })
+
     onMounted(()=>{
         getTranslatesData(1)
         storage().then(data=>{
