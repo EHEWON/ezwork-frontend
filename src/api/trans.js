@@ -49,6 +49,9 @@ export function delTranslate(id){
     });
 }
 
+/**
+ * 删除所有翻译文件记录
+ */
 export function delAllTranslate(){
     return request({
         url: '/api/translate/all',
