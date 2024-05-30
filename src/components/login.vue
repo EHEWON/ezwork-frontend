@@ -20,7 +20,7 @@
     import {login} from '@/api/auth'
     import {store} from '@/store/index'
     const emit=defineEmits(['forget','success'])
-    const form=reactive()
+    const form=ref()
     const user=reactive({
         email:"",
         password:""

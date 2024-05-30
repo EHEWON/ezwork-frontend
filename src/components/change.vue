@@ -29,7 +29,7 @@
     // const send_text=ref("发送")
     // const seconds=ref("60")
     const disabled=ref(false)
-    const form=reactive()
+    const form=ref()
     const rules=reactive({
         oldpwd: [
             { required: true, message: '请填写旧密码', trigger: 'blur' },
