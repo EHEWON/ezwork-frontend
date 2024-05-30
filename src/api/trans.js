@@ -34,6 +34,9 @@ export function transalteProcess(params){
     });
 }
 
+/**
+ * 翻译
+ */
 export function translates(params){
     return request({
         url: `/api/translates`,
