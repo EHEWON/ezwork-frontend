@@ -44,7 +44,7 @@
             </template>
             <forget @return="backToAuth" @success="forgetSuccess"></forget>
         </el-dialog>
-        <el-dialog v-model="changeVisible" center width="410px" :show-close="false" style="border-radius: 10px;">
+        <el-dialog v-model="changeVisible" title="修改密码" center width="410px" :show-close="false" style="border-radius: 10px;">
             <change @success="changeSuccess"></change>
         </el-dialog>
         <el-dialog v-model="logoutVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">

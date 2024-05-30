@@ -8,3 +8,10 @@ export function changePassword(data) {
         data
     });
 }
+
+export function storage() {
+    return request({
+        url: '/api/storage',
+        method: 'GET',
+    });
+}

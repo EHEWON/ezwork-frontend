@@ -4,7 +4,7 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx,.pdf" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx,.pdf" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
                             仅支持word、excel、ppt相关格式，文件大小≤10mb
                         </template>
@@ -79,9 +79,9 @@
             <div class="right">
                 <div class="translated-container">
                     <div class="translated-header">
-                        <h2 style="display: inline-block;">翻译任务列表</h2>
-                        <span class="storage">存储空间(80M)</span>
-                        <el-progress class="translated-process" :percentage="50" />
+                        <h2>翻译任务列表</h2>
+                        <span class="storage">存储空间({{storageTotal}}M)</span>
+                        <el-progress class="translated-process" :percentage="storagePercentage" />
                     </div>
                     <el-table :data="translatesData" fit flexible>
                         <el-table-column prop="origin_filename" label="文档名称" />
@@ -145,6 +145,7 @@
     import {reactive,ref,computed,watch,inject,defineEmits,onMounted} from 'vue'
     const API_URL=import.meta.env.VITE_API_URL
     import { checkOpenAI,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate } from '@/api/trans'
+    import {storage} from '@/api/account'
     import uploadedPng from '@assets/uploaded.png'
     import uploadPng from '@assets/upload.png'
     import loadingPng from '@assets/loading.gif'
@@ -170,8 +171,13 @@
     const translatesData=ref([]);
     const translatesTotal=ref(0);
     const translatesLimit=ref(10);
+    const storageTotal=ref(0);
+    const storageUsed=ref(0);
+    const storagePercentage=ref(0.0);
 
     const transform=ref(null)
+
+    const uploadHeader=ref({token:store.token})
 
     const emit=defineEmits(['should-auth'])
 
@@ -239,6 +245,13 @@
 
     onMounted(()=>{
         getTranslatesData(1)
+        storage().then(data=>{
+            if(data.code==0){
+                storageTotal.value=data.data.storage
+                storageUsed.value=data.data.used
+                storagePercentage.value=data.data.percentage
+            }
+        })
     })
 
     function check(){
@@ -361,6 +374,13 @@
 
     function changeFile(){
         uploaded.value=false
+    }
+
+    function beforeUpload(){
+        if(!store.token){
+            emit('should-auth')
+            return false
+        }
     }
 
     function uploadSuccess(data){
@@ -516,7 +536,7 @@
         min-width: 300px;
         height: 380px;
         margin-bottom: 16px;
-        padding: 10px;
+        padding: 20px;
         overflow: auto;
     }
     .form-container{
@@ -778,6 +798,11 @@
     }
     .translated-header h2{
         margin-right: 30px;
+        display: inline-block;
+        font-family: 'PingFang SC';
+        font-weight: bold;
+        font-size: 16px;
+        color: #000000;
     }
     .translated-header .storage{
         margin-right: 30px;
