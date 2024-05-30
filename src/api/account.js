@@ -9,6 +9,9 @@ export function changePassword(data) {
     });
 }
 
+/**
+ * 获取存储空间
+ */
 export function storage() {
     return request({
         url: '/api/storage',
