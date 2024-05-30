@@ -68,9 +68,9 @@
                             <el-input-number style="width:100%" :min="10" :max="40" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
                         </el-form-item>
                         <div class="center form-btns">
-                            <div class="check-container">
+                            <!-- <div class="check-container">
                                 <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
-                            </div>
+                            </div> -->
                             <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
                         </div>
                     </el-form>
