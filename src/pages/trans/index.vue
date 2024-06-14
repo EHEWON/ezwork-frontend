@@ -799,6 +799,7 @@
         margin-bottom: 10px;
         margin-left: 15px;
         margin-right: 15px;
+        min-height: 170px;
     }
     .translated-header{
         display: flex;
