@@ -4,7 +4,7 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx,.pdf" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
                             仅支持word、excel、ppt相关格式，文件大小≤10mb
                         </template>
@@ -85,8 +85,8 @@
                     </div>
                     <el-table :data="translatesData" fit flexible>
                         <el-table-column prop="origin_filename" label="文档名称" />
-                        <el-table-column prop="status_name" label="任务状态" />
-                        <el-table-column label="操作">
+                        <el-table-column width="160px" prop="status_name" label="任务状态" />
+                        <el-table-column width="180px" label="操作">
                             <template #default="scope">
                                 <el-icon v-if="scope.row.status=='done'"  style="margin-right: 21px;cursor: pointer;">
                                     <el-link :href="API_URL+scope.row.target_filepath" target="_blank">
@@ -436,7 +436,7 @@
     }
 
     function delTransFile(id){
-        ElMessageBox.confirm('是否确定要删除？','Warning',{
+        ElMessageBox.confirm('是否确定要删除？','提示',{
             confirmButtonText: '确定',
             cancelButtonText: '取消',
             type: 'warning',
@@ -450,7 +450,7 @@
     }
 
     function delAllTransFile(){
-        ElMessageBox.confirm('是否确定要删除全部？','Warning',{
+        ElMessageBox.confirm('是否确定要删除全部？','提示',{
             confirmButtonText: '确定',
             cancelButtonText: '取消',
             type: 'warning',
