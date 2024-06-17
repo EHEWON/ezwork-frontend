@@ -4,7 +4,7 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
                             仅支持word、excel、ppt相关格式，文件大小≤10mb
                         </template>
@@ -401,10 +401,17 @@
             uploaded.value=true
         }else{
             ElMessage({
-                message:data.msg,
+                message:data.message,
                 type:"error",
             })
         }
+    }
+
+    function uploadError(data){
+        ElMessage({
+                message:"文件上传失败，请检查文件是否超过10M",
+                type:"error",
+            })
     }
 
     function delUploadFile(file, files){
