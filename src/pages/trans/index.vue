@@ -562,6 +562,7 @@
     .download-container{
         height: 368px;
         text-align: center;
+        display: block;
         overflow: auto;
     }
     .form-container form{
