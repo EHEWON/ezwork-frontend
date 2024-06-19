@@ -51,7 +51,7 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="翻译语言" required prop="langs">
-                            <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="5">
+                            <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit">
                                 <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
                             </el-select>
                         </el-form-item>
@@ -171,6 +171,7 @@
     const translatesData=ref([]);
     const translatesTotal=ref(0);
     const translatesLimit=ref(10);
+    const langMultipleLimit=ref(5);
     const storageTotal=ref(0);
     const storageUsed=ref(0);
     const storagePercentage=ref(0.0);
@@ -191,7 +192,7 @@
         lang:"",
         type:localStorage.getItem("type") || "translation",
         uuid:"",
-        system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法访问的文本直接返回原内容。保留多余空格。",
+        system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
         threads:localStorage.getItem("threads") || 10,
     })
 
@@ -236,9 +237,14 @@
             localStorage.setItem("system", n.system)
             localStorage.setItem("threads", n.threads)
             if(n.files.length>1){
-                langMultiSelected.value=false
+               langMultipleLimit.value=1
+               if(form.value.langs.length>1){
+                    form.value.langs=[]
+               }
+               // langMultiSelected.value=false
             }else{
-                langMultiSelected.value=true
+                // langMultiSelected.value=true
+                langMultipleLimit.value=5
             }
         }
     },{ deep: true })
