@@ -1,7 +1,7 @@
 <template>
     <div class="page-header">
         <el-row>
-            <el-col :span="6"></el-col>
+            <el-col class="page-header-left" :span="6"></el-col>
             <el-col :span="12">
                 <h1 class="page-title">{{store.pTitle}}</h1>
             </el-col>
@@ -20,7 +20,7 @@
                 </template>
             </el-col>
         </el-row>
-        <el-dialog v-model="authVisible" center width="410px" :show-close="false" style="border-radius: 10px;">
+        <el-dialog v-model="authVisible" center width="380px" :show-close="false" style="border-radius: 10px;">
             <template #header="{close,titleId,titleClass}">
                 <el-menu :default-active="activeIndex" mode="horizontal" class="menu-center" @select="menuSelect" text-color="#8F8F91" active-text-color="#111111">
                     <el-menu-item index="1" class="menu-title">登陆</el-menu-item>
@@ -34,7 +34,7 @@
                 <register @success="registerSuccess"></register>
             </template>
         </el-dialog>
-        <el-dialog v-model="forgetVisible" center width="410px" :show-close="false" style="border-radius: 10px;">
+        <el-dialog v-model="forgetVisible" center width="380px" :show-close="false" style="border-radius: 10px;">
             <template #header="{close,titleId,titleClass}">
                 <h1 :class="titleClass" class="forget-title">
                     <el-icon style="cursor: pointer;" @click="backToAuth"><Back /></el-icon>    
@@ -44,10 +44,10 @@
             </template>
             <forget @return="backToAuth" @success="forgetSuccess"></forget>
         </el-dialog>
-        <el-dialog v-model="changeVisible" title="修改密码" center width="410px" :show-close="false" style="border-radius: 10px;">
+        <el-dialog v-model="changeVisible" title="修改密码" center width="380px" :show-close="false" style="border-radius: 10px;">
             <change @success="changeSuccess"></change>
         </el-dialog>
-        <el-dialog v-model="logoutVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
+        <el-dialog v-model="logoutVisible" title="" center :show-close="false" width="380px" heigt="240px" style="border-radius: 10px;">
             <div class="dialog-container">
                 <h1 class="dialog-title">退出登录</h1>
                 <div class="dialog-content">你确定要退出登录</div>
@@ -57,7 +57,7 @@
                 </div>
             </div>
         </el-dialog>
-        <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
+        <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" width="380px" heigt="240px" style="border-radius: 10px;">
             <div class="dialog-container">
                 <img src="@assets/reset_success.png" style="width:128px;" />
                 <div class="dialog-content">重置密码成功！</div>
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </el-dialog>
-        <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
+        <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" width="380px" heigt="240px" style="border-radius: 10px;">
             <div class="dialog-container">
                 <img src="@assets/reset_success.png" style="width:128px;" />
                 <div class="dialog-content">您已注册成功！</div>
@@ -196,5 +196,10 @@
     }
     .dialog-btn.send-confirm{
         width: 327px;
+    }
+    @media screen and (max-width:800px){
+        .page-header-left{
+            display: none;
+        }
     }
 </style>

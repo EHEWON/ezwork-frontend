@@ -196,7 +196,7 @@
         threads:localStorage.getItem("threads") || 10,
     })
 
-    const models=['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview']
+    const models=['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview','deepseek-chat','glm-4','gpt-4-turbo','gpt-4o','llama3-70b','llama3-70b-zh']
     const langs=['中文','英语','日语','俄语','阿拉伯语','西班牙语']
 
     const rules={
@@ -343,6 +343,9 @@
                     })
                     
                 })
+                setTimeout(()=>{
+                    getTranslatesData(1)
+                },2000)
             }else{
                 for(var field in messages){
                     messages[field].forEach(message=>{
@@ -850,6 +853,9 @@
         }
         .form-container .form-btns{
             display: none;
+        }
+        .page-title{
+            font-size: 18px;
         }
         .static.form-btns{
             display: inline-block;

@@ -58,7 +58,7 @@
                      if(data.code==0){
                         ElMessage({
                             message:'修改成功',
-                            type:"error",
+                            type:"success",
                         })
                         emit('success')
                     }else{
