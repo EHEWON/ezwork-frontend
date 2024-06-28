@@ -103,17 +103,18 @@
                     </div>
                 </div>
                 <div class="download-container">
-                    <el-card v-for="res in result" class="translate-card">
-                        <template #header>
-                          <div class="card-header">
+                    <div v-for="res in result" class="translate-card">
+                        <div class="card-header">
                             <span>{{res.file_name}} ({{res.lang}})</span>
-                          </div>
-                        </template>
-                        <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
-                        <template #footer>
-                            <el-link :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                        </template>
-                    </el-card>
+                        </div>
+                        <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
+                            <template #default="{ percentage }">
+                                <span class="percentage">{{percentage}}%</span>
+                                <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+                                <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+                            </template>
+                        </el-progress>
+                    </div>
                 </div>
             </div>
             <div class="blank"></div>
@@ -126,17 +127,18 @@
         </div>
         <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
             <div class="translate-container">
-                <el-card v-for="res in result" class="translate-card">
-                    <template #header>
-                      <div class="card-header">
+                <div v-for="res in result" class="translate-card">
+                    <div class="card-header">
                         <span>{{res.file_name}} ({{res.lang}})</span>
-                      </div>
-                    </template>
-                    <el-progress :percentage="res['percentage']" :text-inside="true" :stroke-width="15" status="success"></el-progress>
-                    <template #footer>
-                        <el-link :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                    </template>
-                </el-card>
+                    </div>
+                    <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
+                        <template #default="{ percentage }">
+                            <span class="percentage">{{percentage}}%</span>
+                            <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+                            <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+                        </template>
+                    </el-progress>
+                </div>
             </div>
         </el-dialog>
     </div>
@@ -311,7 +313,6 @@
                         form.value.uuid=uuid
                         translating[uuid]=true
                         console.log(translating)
-                        process(uuid,source)
                         result.value[uuid]={
                             file_name:file.file_name,
                             file_path:file.file_path,
@@ -321,6 +322,8 @@
                             disabled:true,
                             link:''
                         }
+                        // return
+                        process(uuid,source)
                         transalteFile(form.value).then(data=>{
                             // translating[uuid]=false
                             // if(data.code==0){
@@ -812,11 +815,9 @@
         text-align: center;
     }
     .translate-card{
-        width: calc(100% - 30px);
         margin-bottom: 10px;
         margin-left: 15px;
         margin-right: 15px;
-        min-height: 170px;
     }
     .translated-header{
         display: flex;
@@ -836,6 +837,38 @@
     .translated-process{
         width:300px;
         display: inline-block;
+    }
+    .card-header{
+        font-family: 'PingFang SC';
+        font-weight: 400;
+        font-size: 14px;
+        color: #333333;
+        text-align: left;
+        margin-bottom: 10px;
+        margin-top: 25px;
+    }
+    .progress{
+        border-radius: 4px;
+    }
+    .percentage{
+        font-weight: 400;
+        font-size: 14px;
+        margin-left: 18px;
+        margin-right: 20px;
+        color: #333333;
+    }
+    .download-link-disable{
+        font-weight: 400;
+        font-size: 14px;
+        color: #BBBBBB;
+    }
+    .download-link{
+        font-weight: 400;
+        font-size: 14px;
+        color: #055CF9;
+    }
+    .download-container .el-progress-bar__inner,.translate-container .el-progress-bar__inner{
+        background-color: #055CF9 !important;
     }
     @media screen and (max-width:800px){
         .container .blank{
