@@ -18,3 +18,13 @@ export function storage() {
         method: 'GET',
     });
 }
+
+/**
+ * 登录用户基本信息
+ */
+export function authInfo() {
+    return request({
+        url: '/api/info',
+        method: 'GET',
+    });
+}

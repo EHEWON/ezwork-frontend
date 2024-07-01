@@ -4,7 +4,7 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="uploadHeader" :before-upload="beforeUpload" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
                             仅支持word、excel、ppt相关格式，文件大小≤10mb
                         </template>
@@ -50,6 +50,11 @@
                                 <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
                             </el-select>
                         </el-form-item>
+                       <!--  <el-form-item label="备用模型" prop="backup_model">
+                            <el-select v-model="form.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
+                                <el-option v-for="model in backup_models" :key="model" :name="model" :value="model"></el-option>
+                            </el-select>
+                        </el-form-item> -->
                         <el-form-item label="翻译语言" required prop="langs">
                             <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit">
                                 <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
@@ -180,8 +185,6 @@
 
     const transform=ref(null)
 
-    const uploadHeader=ref({token:store.token})
-
     const emit=defineEmits(['should-auth'])
 
     const form=ref({
@@ -199,6 +202,7 @@
     })
 
     const models=['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview','deepseek-chat','glm-4','gpt-4-turbo','gpt-4o','llama3-70b','llama3-70b-zh']
+    const backup_models=['deepseek-chat']
     const langs=['中文','英语','日语','俄语','阿拉伯语','西班牙语']
 
     const rules={

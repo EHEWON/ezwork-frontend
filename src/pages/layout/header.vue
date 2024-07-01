@@ -83,7 +83,8 @@
     import register from '@/components/register.vue'
     import forget from '@/components/forget.vue'
     import change from '@/components/change.vue'
-    import {ref,provide,watch,defineProps,defineEmits} from 'vue'
+    import {authInfo} from '@/api/account'
+    import {ref,provide,watch,defineProps,defineEmits,onMounted} from 'vue'
     const props=defineProps({
         title:String,
         authDialog:Boolean,
@@ -105,6 +106,13 @@
         if(!n){
             emit('close-auth-dialog')
         }
+    })
+
+    onMounted(()=>{
+        authInfo().then(data=>{
+            store.setUsername(data.data.email)
+            store.setLevel(data.data.level)
+        })
     })
 
     function menuSelect(index){
