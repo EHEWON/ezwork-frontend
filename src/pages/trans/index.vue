@@ -6,7 +6,7 @@
                 <div class="upload-container">
                     <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
-                            仅支持word、excel、ppt相关格式，文件大小≤10mb
+                            支持格式.docx/.xlsx/.pptx，文件≤10MB
                         </template>
                         <template #default :uploaded="uploaded">
                             <div class="has-upload" v-if="uploaded">
@@ -50,11 +50,11 @@
                                 <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
                             </el-select>
                         </el-form-item>
-                       <!--  <el-form-item label="备用模型" prop="backup_model">
+                        <el-form-item label="备用模型" prop="backup_model">
                             <el-select v-model="form.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
                                 <el-option v-for="model in backup_models" :key="model" :name="model" :value="model"></el-option>
                             </el-select>
-                        </el-form-item> -->
+                        </el-form-item>
                         <el-form-item label="翻译语言" required prop="langs">
                             <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit">
                                 <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
@@ -193,6 +193,7 @@
         api_url:localStorage.getItem("api_url") || "https://api.openai.com",
         api_key:localStorage.getItem("api_key") || "",
         model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
+        backup_model:localStorage.getItem("backup_model") || "gpt-3.5-turbo-0125",
         langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
         lang:"",
         type:localStorage.getItem("type") || "translation",
@@ -374,25 +375,34 @@
             return
         }
         transalteProcess({uuid}).then(data=>{
-            if(data.data.process==1){
-                if(source=="mobile"){
-                    translateDialog.value=true                            
+            if(data.code==0){
+                if(data.data.process==1){
+                    if(source=="mobile"){
+                        translateDialog.value=true                            
+                    }
+                    // Reflect.set(translating, uuid, false)
+                    translating[uuid]=false
+                    translated.value=true
+                    target_url.value=API_URL+data.data.url
+                    target_count.value=data.data.count
+                    target_time.value=data.data.time
+                    result.value[uuid]['link']=API_URL+data.data.url
+                    result.value[uuid]['disabled']=false
+                }else{
+                    setTimeout(()=>process(uuid,source), 1000)
                 }
-                // Reflect.set(translating, uuid, false)
-                translating[uuid]=false
-                translated.value=true
-                target_url.value=API_URL+data.data.url
-                target_count.value=data.data.count
-                target_time.value=data.data.time
-                result.value[uuid]['link']=API_URL+data.data.url
-                result.value[uuid]['disabled']=false
+                if(data.data.process!=""){
+                    result.value[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
+                }
             }else{
-                setTimeout(()=>process(uuid,source), 1000)
+                ElMessage({
+                    message:data.message,
+                    type:"error",
+                    duration: 5000
+                })
+                getTranslatesData(1)
+                result.value={}
             }
-            if(data.data.process!=""){
-                result.value[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
-            }
-            console.log(result)
         })
     }
 
