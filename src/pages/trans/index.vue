@@ -200,7 +200,7 @@
         backup_model:localStorage.getItem("backup_model") || "gpt-3.5-turbo-0125",
         langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
         lang:"",
-        type:localStorage.getItem("type") || "translation",
+        type:localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text","trans_text_only","trans_text_only_inherit"],
         uuid:"",
         system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
         threads:localStorage.getItem("threads") || 10,
@@ -260,7 +260,6 @@
                         },
                         {
                             value: 'trans_text_both_inherit',
-                            disabled: true,
                             label: '继承原版面',
                         },
                     ],
@@ -288,7 +287,6 @@
                 {
                     value: 'trans_all_both',
                     label: '原文+译文',
-                    disabled: true,
                     children: [
                         {
                             value: 'trans_all_both_new',
@@ -296,7 +294,6 @@
                         },
                         {
                             value: 'trans_all_both_inherit',
-                            disabled: true,
                             label: '继承原版面',
                         },
                     ],
@@ -318,7 +315,7 @@
             localStorage.setItem("api_key", n.api_key)
             localStorage.setItem("model", n.model)
             localStorage.setItem("langs", JSON.stringify(n.langs))
-            localStorage.setItem("type", n.type)
+            localStorage.setItem("type", JSON.stringify(n.type))
             localStorage.setItem("system", n.system)
             localStorage.setItem("threads", n.threads)
             if(n.files.length>1){
@@ -408,6 +405,7 @@
                         // return
                         process(uuid,source)
                         transalteFile(form.value).then(data=>{
+                            getTranslatesData(1)
                             // translating[uuid]=false
                             // if(data.code==0){
                             //     translated.value=true
