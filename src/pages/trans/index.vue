@@ -330,6 +330,7 @@
                         // return
                         process(uuid,source)
                         transalteFile(form.value).then(data=>{
+                            getTranslatesData(1)
                             // translating[uuid]=false
                             // if(data.code==0){
                             //     translated.value=true
