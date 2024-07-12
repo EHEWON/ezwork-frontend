@@ -164,6 +164,7 @@
     import completedPng from '@assets/completed.png'
     import {store} from '@/store'
     import {ElMessage,ElMessageBox} from 'element-plus'
+    import hash from 'object-hash'
 
     const uploaded=ref(false)
     const translated=ref(false)
@@ -389,7 +390,9 @@
                     form.value.file_path=file.file_path
                     langs.forEach(lang=>{
                         form.value.lang=lang
-                        let uuid=file.uuid+"-"+lang
+                        let uuid=hash(form.value)
+                        console.log(uuid)
+                        // let uuid=file.uuid+"-"+lang
                         form.value.uuid=uuid
                         translating[uuid]=true
                         console.log(translating)
