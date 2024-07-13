@@ -10,7 +10,7 @@ const service = axios.create({
   baseURL: import.meta.env.VITE_API_URL, // url = base url + request url
   withCredentials: true, // send cookies when cross-domain requests
   crossDomain: true,
-  timeout: 600000, // request timeout
+  timeout: 3000000, // request timeout
   transformRequest: [function(data) {
     if (data instanceof FormData) {
       return data
