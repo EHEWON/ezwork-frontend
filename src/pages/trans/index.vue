@@ -60,12 +60,16 @@
                                 <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="译文形式" required prop="type">
+                        <el-form-item label="译文形式" required prop="type" width="100%">
+                            <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="form.type" :options="types" clearable :props="{ expandTrigger: 'hover' }">
+                            </el-cascader>
+                        </el-form-item>
+                        <!-- <el-form-item label="译文形式" required prop="type">
                             <el-select v-model="form.type" placeholder="请选择译文形式">
                                 <el-option value="translation" label="仅译文"></el-option>
                                 <el-option value="both" label="原文+译文"></el-option>
                             </el-select>
-                        </el-form-item>
+                        </el-form-item> -->
                         <el-form-item label="提示语" required prop="system">
                             <el-input v-model="form.system" autosize type="textarea" :rows="3" placeholder="请输入系统翻译提示词"></el-input>
                         </el-form-item>
@@ -197,7 +201,7 @@
         backup_model:localStorage.getItem("backup_model") || "gpt-3.5-turbo-0125",
         langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
         lang:"",
-        type:localStorage.getItem("type") || "translation",
+        type:localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text","trans_text_only","trans_text_only_inherit"],
         uuid:"",
         system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
         threads:localStorage.getItem("threads") || 10,
@@ -228,6 +232,77 @@
         ]
     }
 
+    const types = [
+        {
+            value: 'trans_text',
+            label: '仅文字部分',
+            children: [
+                {
+                    value: 'trans_text_only',
+                    label: '仅译文',
+                    children: [
+                        {
+                            value: 'trans_text_only_new',
+                            label: '重排版面',
+                        },
+                        {
+                            value: 'trans_text_only_inherit',
+                            label: '继承原版面',
+                        },
+                    ],
+                },
+                {
+                    value: 'trans_text_both',
+                    label: '原文+译文',
+                    children: [
+                        {
+                            value: 'trans_text_both_new',
+                            label: '重排版面',
+                        },
+                        {
+                            value: 'trans_text_both_inherit',
+                            label: '继承原版面',
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            value: 'trans_all',
+            label: '全部内容',
+            children: [
+                {
+                    value: 'trans_all_only',
+                    label: '仅译文',
+                    children: [
+                        {
+                            value: 'trans_all_only_new',
+                            label: '重排版面',
+                        },
+                        {
+                            value: 'trans_all_only_inherit',
+                            label: '继承原版面',
+                        },
+                    ],
+                },
+                {
+                    value: 'trans_all_both',
+                    label: '原文+译文',
+                    children: [
+                        {
+                            value: 'trans_all_both_new',
+                            label: '重排版面',
+                        },
+                        {
+                            value: 'trans_all_both_inherit',
+                            label: '继承原版面',
+                        },
+                    ],
+                },
+            ],
+        },
+    ]
+
     const target_tip=computed(()=>{
         return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
     })
@@ -241,7 +316,7 @@
             localStorage.setItem("api_key", n.api_key)
             localStorage.setItem("model", n.model)
             localStorage.setItem("langs", JSON.stringify(n.langs))
-            localStorage.setItem("type", n.type)
+            localStorage.setItem("type", JSON.stringify(n.type))
             localStorage.setItem("system", n.system)
             localStorage.setItem("threads", n.threads)
             if(n.files.length>1){
@@ -887,6 +962,9 @@
     }
     .download-container .el-progress-bar__inner,.translate-container .el-progress-bar__inner{
         background-color: #055CF9 !important;
+    }
+    .type-cascader{
+        width: 100%;
     }
     @media screen and (max-width:800px){
         .container .blank{
