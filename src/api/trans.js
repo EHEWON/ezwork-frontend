@@ -45,6 +45,16 @@ export function translates(params){
     });
 }
 
+/**
+ * 获取翻译设置
+ */
+export function translateSetting(){
+    return request({
+        url: '/api/translate/setting',
+        method: 'get',
+    });
+}
+
 export function delTranslate(id){
     return request({
         url: `/api/translate/${id}`,
