@@ -4,9 +4,9 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx,.pdf" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
-                            支持格式.docx/.xlsx/.pptx，文件≤10MB
+                            支持格式.docx/.xlsx/.pptx/.pdf，文件≤10MB
                         </template>
                         <template #default :uploaded="uploaded">
                             <div class="has-upload" v-if="uploaded">
@@ -52,7 +52,7 @@
                         </el-form-item>
                         <el-form-item label="备用模型" prop="backup_model">
                             <el-select v-model="form.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
-                                <el-option v-for="model in backup_models" :key="model" :name="model" :value="model"></el-option>
+                                <el-option v-for="model in models" :disabled="form.model==model ? true :false" :key="model" :name="model" :value="model"></el-option>
                             </el-select>
                         </el-form-item>
                         <el-form-item label="翻译语言" required prop="langs">
@@ -70,8 +70,8 @@
                                 <el-option value="both" label="原文+译文"></el-option>
                             </el-select>
                         </el-form-item> -->
-                        <el-form-item label="提示语" required prop="system">
-                            <el-input v-model="form.system" autosize type="textarea" :rows="3" placeholder="请输入系统翻译提示词"></el-input>
+                        <el-form-item label="提示语" required prop="prompt">
+                            <el-input v-model="form.prompt" autosize type="textarea" :rows="3" placeholder="请输入系统翻译提示词"></el-input>
                         </el-form-item>
                         <el-form-item label="线程数" required>
                             <el-input-number style="width:100%" :min="10" :max="40" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
@@ -155,7 +155,7 @@
 <script setup>
     import {reactive,ref,computed,watch,inject,defineEmits,onMounted} from 'vue'
     const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate } from '@/api/trans'
+    import { checkOpenAI,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate,translateSetting } from '@/api/trans'
     import {storage} from '@/api/account'
     import uploadedPng from '@assets/uploaded.png'
     import uploadPng from '@assets/upload.png'
@@ -192,23 +192,29 @@
 
     const emit=defineEmits(['should-auth'])
 
+    let cache_type=["trans_text","trans_text_only","trans_text_only_inherit"]
+    try{
+        cache_type=localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text","trans_text_only","trans_text_only_inherit"]
+    }catch(err){
+        
+    }
+
     const form=ref({
         files:[],
         server:store.level=='vip' ? 'member' : 'openai',
-        api_url:localStorage.getItem("api_url") || "https://api.openai.com",
-        api_key:localStorage.getItem("api_key") || "",
-        model:localStorage.getItem("model") || "gpt-3.5-turbo-0125",
-        backup_model:localStorage.getItem("backup_model") || "gpt-3.5-turbo-0125",
+        api_url:"https://api.openai.com",
+        api_key:"",
+        model:"",
+        backup_model:"",
         langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
         lang:"",
-        type:localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text","trans_text_only","trans_text_only_inherit"],
+        type:cache_type,
         uuid:"",
-        system:localStorage.getItem("system") || "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
-        threads:localStorage.getItem("threads") || 10,
+        prompt:"你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
+        threads:10,
     })
 
-    const models=['gpt-3.5-turbo-0125','gpt-4-1106-preview','gpt-4-0125-preview','deepseek-chat','glm-4','gpt-4-turbo','gpt-4o','llama3-70b','llama3-70b-zh']
-    const backup_models=['deepseek-chat']
+    const models=ref([])
     const langs=['中文','英语','日语','俄语','阿拉伯语','西班牙语']
 
     const rules={
@@ -227,7 +233,7 @@
         langs: [
             { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
         ],
-        system: [
+        prompt: [
             { required: true, message: '请填写系统提示语', trigger: 'blur' },
         ]
     }
@@ -317,7 +323,7 @@
             localStorage.setItem("model", n.model)
             localStorage.setItem("langs", JSON.stringify(n.langs))
             localStorage.setItem("type", JSON.stringify(n.type))
-            localStorage.setItem("system", n.system)
+            localStorage.setItem("prompt", n.prompt)
             localStorage.setItem("threads", n.threads)
             if(n.files.length>1){
                langMultipleLimit.value=1
@@ -347,6 +353,42 @@
                 storageTotal.value=data.data.storage
                 storageUsed.value=data.data.used
                 storagePercentage.value=data.data.percentage
+            }
+        })
+        translateSetting().then(data=>{
+            if(data.code==0){
+                let setting=data.data
+                form.value.api_url=setting.api_url
+                form.value.api_key=setting.api_key
+                models.value=setting.models
+                console.log(setting.models)
+                console.log(models.value)
+                form.value.model=setting.default_model
+                form.value.backup_model=setting.default_backup
+                form.value.prompt=setting.prompt
+                form.value.threads=setting.threads
+
+            }
+            if(localStorage.getItem("api_url")){
+                form.value.api_url=localStorage.getItem("api_url")
+            }
+            if(localStorage.getItem("api_key")){
+                form.value.api_key=localStorage.getItem("api_key")
+            }
+            if(localStorage.getItem("model")){
+                form.value.model=localStorage.getItem("model")
+            }
+            if(localStorage.getItem("model")){
+                form.value.model=localStorage.getItem("model")
+            }
+            if(localStorage.getItem("backup_model")){
+                form.value.backup_model=localStorage.getItem("backup_model")
+            }
+            if(localStorage.getItem("threads")){
+                form.value.threads=localStorage.getItem("threads")
+            }
+            if(localStorage.getItem("prompt")){
+                form.value.prompt=localStorage.getItem("prompt")
             }
         })
     })
