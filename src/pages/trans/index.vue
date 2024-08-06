@@ -4,9 +4,9 @@
             <div class="blank"></div>
             <div class="left">
                 <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" accept=".docx,.xlsx,.pptx,.pdf" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
+                    <el-upload class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
                         <template #tip>
-                            支持格式.docx/.xlsx/.pptx/.pdf，文件≤10MB
+                            支持格式{{accpet_tip}}，文件≤10MB
                         </template>
                         <template #default :uploaded="uploaded">
                             <div class="has-upload" v-if="uploaded">
@@ -172,6 +172,8 @@
     const translateDialog=ref(false)
     const langMultiSelected=ref(true)
 
+    const accepts=".docx,.xlsx,.pptx"
+
     const translating={}
     const result=ref({})
     const target_count=ref("")
@@ -311,6 +313,10 @@
 
     const target_tip=computed(()=>{
         return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
+    })
+
+    const accpet_tip=computed(()=>{
+        return accepts.split(",").join("/")
     })
 
     watch(form,async(o,n)=>{
@@ -531,9 +537,19 @@
         uploaded.value=false
     }
 
-    function beforeUpload(){
+    function beforeUpload(file){
+        console.log(file)
         if(!store.token){
             emit('should-auth')
+            return false
+        }
+        let ext=file.name.split(".").pop()
+        if(!accepts.split(",").includes("."+ext)){
+            ElMessage({
+                message:"不支持该文件格式",
+                type:"error",
+                duration: 5000
+            })
             return false
         }
     }
