@@ -172,7 +172,7 @@
     const translateDialog=ref(false)
     const langMultiSelected=ref(true)
 
-    const accepts=".docx,.xlsx,.pptx"
+    const accepts=".docx,.xlsx,.pptx,.pdf"
 
     const translating={}
     const result=ref({})
