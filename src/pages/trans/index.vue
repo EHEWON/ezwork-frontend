@@ -438,6 +438,7 @@
                     form.value.file_path=file.file_path
                     langs.forEach(lang=>{
                         form.value.lang=lang
+                        form.timestamp=new Date().getTime();
                         let uuid=hash(form.value)
                         console.log(uuid)
                         // let uuid=file.uuid+"-"+lang
