@@ -529,7 +529,7 @@
                     duration: 5000
                 })
                 getTranslatesData(1)
-                result.value={}
+                result.value[uuid]={}
             }
         })
     }
