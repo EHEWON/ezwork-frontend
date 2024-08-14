@@ -93,7 +93,11 @@
                         <el-progress class="translated-process" :percentage="storagePercentage" />
                     </div>
                     <el-table :data="translatesData" fit flexible>
-                        <el-table-column prop="origin_filename" label="文档名称" />
+                        <el-table-column label="文档名称">
+                            <template #default="scope">
+                                <span>{{scope.row.origin_filename}}（{{scope.row.lang}}）</span>
+                            </template>
+                        </el-table-column>
                         <el-table-column width="160px" prop="status_name" label="任务状态" />
                         <el-table-column width="180px" label="操作">
                             <template #default="scope">
