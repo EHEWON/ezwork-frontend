@@ -3,9 +3,18 @@ import request from '@/utils/request'
 // 检查是否可用
 export function checkOpenAI(params) {
     return request({
-        url: `/api/check`,
+        url: `/api/check/openai`,
         method: 'POST',
         data: params
+    });
+}
+
+// 检查pdf是否是扫描件
+export function checkPdf(file_path) {
+    return request({
+        url: `/api/check/pdf`,
+        method: 'POST',
+        data: {file_path}
     });
 }
 

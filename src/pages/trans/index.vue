@@ -56,9 +56,17 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="翻译语言" required prop="langs">
-                            <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit">
-                                <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
-                            </el-select>
+                            <div class="language-selection">
+                                <template v-if="form.scanned">
+                                    <el-select v-model="form.origin_lang" placeholder="请选择起始语言" class="lang-select">
+                                        <el-option v-for="lang in languageOptions" :key="lang.value" :label="lang.label" :value="lang.value"></el-option>
+                                    </el-select>
+                                    <div class="conversion-symbol">→</div>
+                                </template>
+                                <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit" class="lang-select">
+                                    <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
+                                </el-select>
+                            </div>
                         </el-form-item>
                         <el-form-item label="译文形式" required prop="type" width="100%">
                             <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="form.type" :options="types" clearable :props="{ expandTrigger: 'hover' }">
@@ -159,7 +167,7 @@
 <script setup>
     import {reactive,ref,computed,watch,inject,defineEmits,onMounted} from 'vue'
     const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate,translateSetting } from '@/api/trans'
+    import { checkOpenAI,checkPdf,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate,translateSetting } from '@/api/trans'
     import {storage} from '@/api/account'
     import uploadedPng from '@assets/uploaded.png'
     import uploadPng from '@assets/upload.png'
@@ -218,6 +226,8 @@
         uuid:"",
         prompt:"你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
         threads:10,
+        scanned: false, // 添加 scanned 字段
+        origin_lang: '', // 添加起始语言字段
     })
 
     const models=ref([])
@@ -575,6 +585,13 @@
                 uuid:data.data.uuid
             })
             uploaded.value=true
+            let ext=data.data.filename.split('.').pop()
+            if(ext=="pdf"){
+                checkPdf(data.data.filepath).then(result => {
+                    console.log(result)
+                    form.value.scanned = result.data.scanned // 更新表单的 scanned 值
+                })
+            }
         }else{
             ElMessage({
                 message:data.message,
@@ -648,10 +665,54 @@
 
     store.setTitle("EZ-work AI文档翻译")
 
+    // 定义语言映射
+    const languageMap = {
+        'chi_sim': '中文（简体）',
+        'chi_tra': '中文（繁体）',
+        'eng': '英语',
+        'jpn': '日语',
+        'kor': '韩语',
+        'fra': '法语',
+        'spa': '西班牙语',
+        'rus': '俄语',
+        'ara': '阿拉伯语',
+        'deu': '德语',
+        // ... 添加更多 Tesseract 支持的语言
+    }
+
+    // 创建语言选项数组
+    const languageOptions = computed(() => {
+        return Object.entries(languageMap).map(([value, label]) => ({
+            value,
+            label
+        }))
+    })
+
 </script>
 <style type="text/css">
     .form-container .el-input-number .el-input__inner{
         text-align: left;
+    }
+    .language-selection {
+        display: flex;
+        align-items: center;
+        gap: 10px; /* 调整元素之间的间距 */
+        width: 100%;
+    }
+
+    .lang-select {
+        width: 100%; /* 默认宽度为100% */
+        transition: width 0.3s ease; /* 添加过渡效果 */
+    }
+
+    .language-selection:has(.conversion-symbol) .lang-select {
+        width: 100%; /* 当有转换符号时，设置宽度为45% */
+    }
+
+    .conversion-symbol {
+        font-size: 20px;
+        color: #409EFF; /* 使用 Element Plus 的主色调，可以根据需要调整 */
+        flex-shrink: 0; /* 防止符号被压缩 */
     }
 </style>
 <style type="text/css">
