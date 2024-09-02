@@ -387,6 +387,7 @@
                 form.value.backup_model=setting.default_backup
                 form.value.prompt=setting.prompt
                 form.value.threads=setting.threads
+                
 
             }
             if(localStorage.getItem("api_url")){
@@ -445,6 +446,15 @@
         }
         transform.validate((valid,messages) => {
             if(valid){
+                if(form.value.scanned){
+                    if(form.value.origin_lang==""){
+                        ElMessage({
+                            message:"请选择pdf文件的原始语言",
+                            type:"error",
+                        })
+                        return
+                    }
+                }
                 if(source=="mobile"){
                     translateDialog.value=true
                 }
