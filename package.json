@@ -7,8 +7,8 @@
     {
         "dev": "vite",
         "build": "vite build",
-        "demo": "vite build --env-file ./.env.demo",
-        "docker": "vite build --env-file ./.env.docker",
+        "demo": "vite build --mode demo",
+        "docker": "vite build --mode docker",
         "preview": "vite preview"
     },
     "dependencies":

@@ -3,15 +3,19 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-    plugins: [vue()],
-    resolve: {
-        alias: {
-          '@': path.resolve(__dirname, './src'),
-          '@assets': path.resolve(__dirname, './src/assets'),
+export default defineConfig(({ mode }) => {
+    return {
+        plugins: [vue()],
+        resolve: {
+            alias: {
+              '@': path.resolve(__dirname, './src'),
+              '@assets': path.resolve(__dirname, './src/assets'),
+            },
         },
-    },
-    build:{
-        assetsDir:"static"
+        base: './',
+        build:{
+            assetsDir:"static",
+            publicPath: mode === 'demo' ? '/ezwork-frontend/' : '/'
+        }
     }
 })
