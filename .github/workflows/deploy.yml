@@ -21,7 +21,13 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - name: Print environment variables
+        run: |
+          echo "API URL: $VITE_API_URL"
+
       - name: Build the project
+        env:
+          NODE_ENV: demo  # 设置环境变量
         run: yarn build
 
       - name: Deploy to GitHub Pages
