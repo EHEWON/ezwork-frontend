@@ -30,8 +30,28 @@ jobs:
           NODE_ENV: demo  # 设置环境变量
         run: yarn demo
 
+      - name: Extract tag
+        id: tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}  # 这里可以使用动态版本号
+          release_name: Release ${{ steps.tag.outputs.tag }}
+          body: |
+            This is the release of version ${{ steps.tag.outputs.tag }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        # 将 dist 文件夹中的文件附加到 Release
+        with:
+          files: ./dist/**  # 这里可以根据需要调整路径
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.DEPLOY_TOKEN }}
           publish_dir: ./dist  # 构建输出目录
+
+
