@@ -42,11 +42,10 @@ jobs:
           release_name: Release ${{ steps.tag.outputs.tag }}
           body: |
             This is the release of version ${{ steps.tag.outputs.tag }}.
+          files: ./dist/**  # 这里可以根据需要调整路径
         env:
           GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         # 将 dist 文件夹中的文件附加到 Release
-        with:
-          files: ./dist/**  # 这里可以根据需要调整路径
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
