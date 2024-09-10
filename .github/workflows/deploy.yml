@@ -34,6 +34,10 @@ jobs:
         id: tag
         run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
 
+      - name: Create a ZIP file
+        run: |
+          zip -r release.zip .
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -42,7 +46,7 @@ jobs:
           release_name: Release ${{ steps.tag.outputs.tag }}
           body: |
             This is the release of version ${{ steps.tag.outputs.tag }}.
-          files: ./dist/**  # 这里可以根据需要调整路径
+          files: release.zip  # 这里可以根据需要调整路径
         env:
           GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         # 将 dist 文件夹中的文件附加到 Release
