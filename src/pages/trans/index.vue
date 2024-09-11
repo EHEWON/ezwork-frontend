@@ -1,944 +1,1066 @@
 <template>
-    <div>
-        <div class="container">
-            <div class="blank"></div>
-            <div class="left">
-                <div class="upload-container">
-                    <el-upload class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-change="changeFile" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile">
-                        <template #tip>
-                            支持格式{{accpet_tip}}，文件≤10MB
-                        </template>
-                        <template #default :uploaded="uploaded">
-                            <div class="has-upload" v-if="uploaded">
-                                <img :src="uploadedPng" />
-                                <div class="upload-success">文件上传成功</div>
-                                <div class="upload-filename"></div>
-                                <small class="re-upload">点击或拖拽重新上传</small>
-                            </div>
-                            <div class="wait-upload" v-else>
-                                <button class="upload_btn" id="upload_btn" type="button">
-                                    <span></span>
-                                    <img :src="uploadPng" />
-                                    <span>上传文档</span>
-                                    <span></span>
-                                </button>
-                            </div>
-                        </template>
-                    </el-upload>
-                </div>
-                <div class="form-container">
-                    <el-form ref="transform" :model="form" label-width="auto" :show-message="false" :rules="rules">
-                        <el-form-item label="" required prop="files">
-                            <el-input type="hidden" v-model="form.files"></el-input>
-                        </el-form-item>
-                        <el-form-item label="服务商" required prop="server">
-                            <el-select v-model="form.server" placeholder="请选择服务商" disabled @change="saveValue">
-                                <el-option value="openai" label="OpenAI"></el-option>
-                                <el-option value="member" label="EZ-work 会员"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <template v-if="form.server=='openai'">
-                            <el-form-item label="接口地址" required prop="api_url">
-                                <el-input v-model="form.api_url" placeholder="请输入接口（base_url）地址"></el-input>
-                            </el-form-item>
-                            <el-form-item label="API Key" required prop="api_key">
-                                <el-input v-model="form.api_key" placeholder="请输入OpenAI的API KEY" show-password>></el-input>
-                            </el-form-item>
-                        </template>
-                        <el-form-item label="模型" required prop="model">
-                            <el-select v-model="form.model" placeholder="请选择或自定义OpenAI模型" clearable filterable allow-create>
-                                <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="备用模型" prop="backup_model">
-                            <el-select v-model="form.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
-                                <el-option v-for="model in models" :disabled="form.model==model ? true :false" :key="model" :name="model" :value="model"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="翻译语言" required prop="langs">
-                            <div class="language-selection">
-                                <template v-if="form.scanned">
-                                    <el-select v-model="form.origin_lang" placeholder="请选择起始语言" class="lang-select">
-                                        <el-option v-for="lang in languageOptions" :key="lang.value" :label="lang.label" :value="lang.value"></el-option>
-                                    </el-select>
-                                    <div class="conversion-symbol">→</div>
-                                </template>
-                                <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit" class="lang-select">
-                                    <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
-                                </el-select>
-                            </div>
-                        </el-form-item>
-                        <el-form-item label="译文形式" required prop="type" width="100%">
-                            <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="form.type" :options="types" clearable :props="{ expandTrigger: 'hover' }">
-                            </el-cascader>
-                        </el-form-item>
-                        <!-- <el-form-item label="译文形式" required prop="type">
-                            <el-select v-model="form.type" placeholder="请选择译文形式">
-                                <el-option value="translation" label="仅译文"></el-option>
-                                <el-option value="both" label="原文+译文"></el-option>
-                            </el-select>
-                        </el-form-item> -->
-                        <el-form-item label="提示语" required prop="prompt">
-                            <el-input v-model="form.prompt" autosize type="textarea" :rows="3" placeholder="请输入系统翻译提示词"></el-input>
-                        </el-form-item>
-                        <el-form-item label="线程数" required>
-                            <el-input-number style="width:100%" :min="10" :max="40" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
-                        </el-form-item>
-                        <div class="center form-btns">
-                            <div class="check-container">
-                                <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
-                            </div>
-                            <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
-                        </div>
-                    </el-form>
-                </div>
+  <div class="page-center">
+    <div class="container">
+      <div class="upload-container">
+        <el-upload class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile" :on-change="(file,fileList) => flhandleFileListChange(file,fileList)">
+          <div class="left_box">
+            <div class="icon_box" v-if="!fileListShow">
+              <img src="@/assets/icon_a.png" />
+              <img src="@/assets/icon_w.png" />
+              <img src="@/assets/icon_p.png" />
+              <img src="@/assets/icon_x.png" />
             </div>
-            <div class="right">
-                <div class="translated-container">
-                    <div class="translated-header">
-                        <h2>翻译任务列表</h2>
-                        <span class="storage">存储空间({{storageTotal}}M)</span>
-                        <el-progress class="translated-process" :percentage="storagePercentage" />
-                    </div>
-                    <el-table :data="translatesData" fit flexible>
-                        <el-table-column label="文档名称">
-                            <template #default="scope">
-                                <span>{{scope.row.origin_filename}}（{{scope.row.lang}}）</span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column width="160px" prop="status_name" label="任务状态" />
-                        <el-table-column width="180px" label="操作">
-                            <template #default="scope">
-                                <el-icon v-if="scope.row.status=='done'"  style="margin-right: 21px;cursor: pointer;">
-                                    <el-link :href="API_URL+scope.row.target_filepath" target="_blank">
-                                        <Download />
-                                    </el-link>
-                                </el-icon>
-                                <el-icon style="cursor: pointer;"><Close @click="delTransFile(scope.row.id)" /></el-icon>
-                              </template>
-                        </el-table-column>
-                    </el-table>
-                    <div style="margin-top: 10px;display: flex;justify-content: space-between;">
-                        <el-pagination layout="prev, pager, next" :total="translatesTotal" :page-size="translatesLimit" @current-change="getTranslatesData" />
-                        <el-button type="danger" text plain link @click="delAllTransFile">删除全部</el-button>
-                    </div>
-                </div>
-                <div class="download-container">
-                    <div v-for="res in result" class="translate-card">
-                        <div class="card-header">
-                            <span>{{res.file_name}} ({{res.lang}})</span>
-                        </div>
-                        <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
-                            <template #default="{ percentage }">
-                                <span class="percentage">{{percentage}}%</span>
-                                <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                                <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                            </template>
-                        </el-progress>
-                    </div>
-                </div>
-            </div>
-            <div class="blank"></div>
+          </div>
+          <div class="right_box">
+            <div class="title">拖入/点击按钮选择添加文档</div>
+            <button class="upload_btn" type="button">
+              <img :src="uploadPng" />
+              <span>上传文档</span>
+            </button>
+            <div class="tips">支持格式{{accpet_tip}}，文件≤10MB</div>
+          </div>
+        </el-upload>
+      </div>
+
+      <div class="left">
+
+        <!-- 翻译设置 -->
+        <div class="form-container">
+
         </div>
-        <div class="static center form-btns hide">
-            <div class="check-container">
-                <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
-            </div>
-            <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
+      </div>
+      <div class="right">
+        <div class="translated-container">
+          <div class="translated-header">
+            <h2>翻译任务列表</h2>
+            <span class="storage">存储空间({{storageTotal}}M)</span>
+            <el-progress class="translated-process" :percentage="storagePercentage" />
+          </div>
+          <el-table :data="translatesData" fit flexible>
+            <el-table-column label="文档名称">
+              <template #default="scope">
+                <span>{{scope.row.origin_filename}}（{{scope.row.lang}}）</span>
+              </template>
+            </el-table-column>
+            <el-table-column width="160px" prop="status_name" label="任务状态" />
+            <el-table-column width="180px" label="操作">
+              <template #default="scope">
+                <el-icon v-if="scope.row.status=='done'" style="margin-right: 21px;cursor: pointer;">
+                  <el-link :href="API_URL+scope.row.target_filepath" target="_blank">
+                    <Download />
+                  </el-link>
+                </el-icon>
+                <el-icon style="cursor: pointer;">
+                  <Close @click="delTransFile(scope.row.id)" />
+                </el-icon>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div style="margin-top: 10px;display: flex;justify-content: space-between;">
+            <el-pagination layout="prev, pager, next" :total="translatesTotal" :page-size="translatesLimit" @current-change="getTranslatesData" />
+            <el-button type="danger" text plain link @click="delAllTransFile">删除全部</el-button>
+          </div>
         </div>
-        <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
-            <div class="translate-container">
-                <div v-for="res in result" class="translate-card">
-                    <div class="card-header">
-                        <span>{{res.file_name}} ({{res.lang}})</span>
-                    </div>
-                    <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
-                        <template #default="{ percentage }">
-                            <span class="percentage">{{percentage}}%</span>
-                            <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                            <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                        </template>
-                    </el-progress>
-                </div>
+        <div class="download-container">
+          <div v-for="res in result" class="translate-card">
+            <div class="card-header">
+              <span>{{res.file_name}} ({{res.lang}})</span>
             </div>
-        </el-dialog>
+            <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
+              <template #default="{ percentage }">
+                <span class="percentage">{{percentage}}%</span>
+                <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+                <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+              </template>
+            </el-progress>
+          </div>
+        </div>
+      </div>
     </div>
+    <div class="static center form-btns hide">
+      <div class="check-container">
+        <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+      </div>
+      <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
+    </div>
+    <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
+      <div class="translate-container">
+        <div v-for="res in result" class="translate-card">
+          <div class="card-header">
+            <span>{{res.file_name}} ({{res.lang}})</span>
+          </div>
+          <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
+            <template #default="{ percentage }">
+              <span class="percentage">{{percentage}}%</span>
+              <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+              <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
+            </template>
+          </el-progress>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 翻译设置 -->
+    <el-dialog v-model="formSetShow" title="翻译设置" width="600px" modal-class="custom_dialog" @close="formCancel">
+      <el-form ref="transformRef" :model="formSet" label-width="100px" :rules="rules">
+        <el-form-item label="服务商" required prop="server" width="100%">
+          <el-select v-model="formSet.server" placeholder="请选择服务商" disabled @change="saveValue">
+            <el-option value="openai" label="OpenAI"></el-option>
+            <el-option value="member" label="EZ-work 会员"></el-option>
+          </el-select>
+        </el-form-item>
+        <template v-if="formSet.server=='openai'">
+          <el-form-item label="接口地址" required prop="api_url" width="100%">
+            <el-input v-model="formSet.api_url" placeholder="请输入接口（base_url）地址"></el-input>
+          </el-form-item>
+          <el-form-item label="API Key" required prop="api_key" width="100%">
+            <el-input v-model="formSet.api_key" placeholder="请输入OpenAI的API KEY" show-password>></el-input>
+          </el-form-item>
+        </template>
+        <el-form-item label="模型" required prop="model" width="100%">
+          <el-select v-model="formSet.model" placeholder="请选择或自定义OpenAI模型" clearable filterable allow-create>
+            <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备用模型" prop="backup_model" width="100%">
+          <el-select v-model="formSet.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
+            <el-option v-for="model in models" :disabled="form.model==model ? true :false" :key="model" :name="model" :value="model"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="翻译语言" required prop="langs" width="100%">
+          <div class="language-selection">
+            <template v-if="formSet.scanned">
+              <el-select v-model="formSet.origin_lang" placeholder="请选择起始语言" class="lang-select">
+                <el-option v-for="lang in languageOptions" :key="lang.value" :label="lang.label" :value="lang.value"></el-option>
+              </el-select>
+              <div class="conversion-symbol">→</div>
+            </template>
+            <el-select v-model="formSet.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit" class="lang-select">
+              <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
+            </el-select>
+          </div>
+        </el-form-item>
+        <el-form-item label="译文形式" required prop="type" width="100%">
+          <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="formSet.type" :options="types" clearable :props="{ expandTrigger: 'hover' }">
+          </el-cascader>
+        </el-form-item>
+        <!-- <el-form-item label="译文形式" required prop="type">
+            <el-select v-model="form.type" placeholder="请选择译文形式">
+                <el-option value="translation" label="仅译文"></el-option>
+                <el-option value="both" label="原文+译文"></el-option>
+            </el-select>
+        </el-form-item> -->
+        <el-form-item label="提示语" required prop="prompt" width="100%">
+          <el-input v-model="formSet.prompt" autosize type="textarea" :rows="3" resize="none" placeholder="请输入系统翻译提示词"></el-input>
+        </el-form-item>
+        <el-form-item label="线程数" required prop="threads" width="100%">
+          <el-input-number style="width:100%" :min="10" :max="40" v-model="formSet.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
+        </el-form-item>
+        <div class="btn_box">
+          <div class="btn_check">
+            <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+          </div>
+          <el-button @click="formCancel">取消</el-button>
+          <el-button type="primary" color="#055CF9" @click="formConfim(transformRef)">确认</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <div class="fixed_bottom">
+      <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
+    </div>
+  </div>
 </template>
 <script setup>
-    import {reactive,ref,computed,watch,inject,defineEmits,onMounted} from 'vue'
-    const API_URL=import.meta.env.VITE_API_URL
-    import { checkOpenAI,checkPdf,transalteFile,transalteProcess,delFile,translates,delTranslate,delAllTranslate,translateSetting } from '@/api/trans'
-    import {storage} from '@/api/account'
-    import uploadedPng from '@assets/uploaded.png'
-    import uploadPng from '@assets/upload.png'
-    import loadingPng from '@assets/loading.gif'
-    import finishPng from '@assets/finish.png'
-    import completedPng from '@assets/completed.png'
-    import {store} from '@/store'
-    import {ElMessage,ElMessageBox} from 'element-plus'
-    import hash from 'object-hash'
+import { reactive, ref, computed, watch, inject, defineEmits, onMounted } from 'vue'
+const API_URL = import.meta.env.VITE_API_URL
+import { checkOpenAI, checkPdf, transalteFile, transalteProcess, delFile, translates, delTranslate, delAllTranslate, translateSetting } from '@/api/trans'
+import { storage } from '@/api/account'
+import uploadedPng from '@assets/uploaded.png'
+import uploadPng from '@assets/upload.png'
+import loadingPng from '@assets/loading.gif'
+import finishPng from '@assets/finish.png'
+import completedPng from '@assets/completed.png'
+import { store } from '@/store'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import hash from 'object-hash'
 
-    const uploaded=ref(false)
-    const translated=ref(false)
-    const checking=ref(false)
-    const translateDialog=ref(false)
-    const langMultiSelected=ref(true)
+const props = defineProps({
+  setShow: Boolean,
+})
 
-    const accepts=".docx,.xlsx,.pptx,.pdf"
+const uploaded = ref(false)
+const translated = ref(false)
+const checking = ref(false)
+const translateDialog = ref(false)
+const langMultiSelected = ref(true)
+const formSetShow = ref(false);
 
-    const translating={}
-    const result=ref({})
-    const target_count=ref("")
-    const target_time=ref("")
-    const target_url=ref("")
-    const check_text=ref("检查")
-    const upload_url=API_URL+"/api/upload"
+const accepts = ".docx,.xlsx,.pptx,.pdf"
+const fileListShow = ref(false)
+const translating = {}
+const result = ref({})
+const target_count = ref("")
+const target_time = ref("")
+const target_url = ref("")
+const check_text = ref("检查")
+const upload_url = API_URL + "/api/upload"
 
-    const translatesData=ref([]);
-    const translatesTotal=ref(0);
-    const translatesLimit=ref(10);
-    const langMultipleLimit=ref(5);
-    const storageTotal=ref(0);
-    const storageUsed=ref(0);
-    const storagePercentage=ref(0.0);
+const translatesData = ref([]);
+const translatesTotal = ref(0);
+const translatesLimit = ref(10);
+const langMultipleLimit = ref(5);
+const storageTotal = ref(0);
+const storageUsed = ref(0);
+const storagePercentage = ref(0.0);
 
-    const transform=ref(null)
+const transformRef = ref(null)
 
-    const emit=defineEmits(['should-auth'])
+const emit = defineEmits(['should-auth', 'set-hide'])
 
-    let cache_type=["trans_text","trans_text_only","trans_text_only_inherit"]
-    try{
-        cache_type=localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text","trans_text_only","trans_text_only_inherit"]
-    }catch(err){
-        
+let cache_type = ["trans_text", "trans_text_only", "trans_text_only_inherit"]
+try {
+  cache_type = localStorage.getItem("type") ? JSON.parse(localStorage.getItem("type")) : ["trans_text", "trans_text_only", "trans_text_only_inherit"]
+} catch (err) {
+
+}
+
+const form = ref({
+  files: [],
+  server: store.level == 'vip' ? 'member' : 'openai',
+  api_url: "https://api.openai.com",
+  api_key: "",
+  model: "",
+  backup_model: "",
+  langs: localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
+  lang: "",
+  type: cache_type,
+  uuid: "",
+  prompt: "你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
+  threads: 10,
+  scanned: false, // 添加 scanned 字段
+  origin_lang: '', // 添加起始语言字段
+})
+
+
+const formSet = ref({})
+
+watch(() => props.setShow, (n, o) => {
+  if (n) {
+    //表单数据回显form数据
+    formSet.value = JSON.parse(JSON.stringify(form.value));
+  }
+  formSetShow.value = n
+})
+
+
+
+const models = ref([])
+const langs = ['中文', '英语', '日语', '俄语', '阿拉伯语', '西班牙语']
+
+const rules = {
+  files: [
+    { required: true, message: '请上传文件', trigger: ['blur', 'change'] },
+  ],
+  server: [
+    { required: true, message: '请选择供应商', trigger: ['blur', 'change'] },
+  ],
+  type: [
+    { required: true, message: '请选择译文形式', trigger: ['blur', 'change'] },
+  ],
+  model: [
+    { required: true, message: '请选择模型', trigger: ['blur', 'change'] },
+  ],
+  langs: [
+    { required: true, message: '请选择翻译目标语言', trigger: ['blur', 'change'] },
+  ],
+  prompt: [
+    { required: true, message: '请填写系统提示语', trigger: ['blur', 'change'] },
+  ],
+  threads: [
+    { required: true, message: '请填写线程数', trigger: ['blur', 'change'] },
+  ]
+}
+
+const types = [
+  {
+    value: 'trans_text',
+    label: '仅文字部分',
+    children: [
+      {
+        value: 'trans_text_only',
+        label: '仅译文',
+        children: [
+          {
+            value: 'trans_text_only_new',
+            label: '重排版面',
+          },
+          {
+            value: 'trans_text_only_inherit',
+            label: '继承原版面',
+          },
+        ],
+      },
+      {
+        value: 'trans_text_both',
+        label: '原文+译文',
+        children: [
+          {
+            value: 'trans_text_both_new',
+            label: '重排版面',
+          },
+          {
+            value: 'trans_text_both_inherit',
+            label: '继承原版面',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    value: 'trans_all',
+    label: '全部内容',
+    children: [
+      {
+        value: 'trans_all_only',
+        label: '仅译文',
+        children: [
+          {
+            value: 'trans_all_only_new',
+            label: '重排版面',
+          },
+          {
+            value: 'trans_all_only_inherit',
+            label: '继承原版面',
+          },
+        ],
+      },
+      {
+        value: 'trans_all_both',
+        label: '原文+译文',
+        children: [
+          {
+            value: 'trans_all_both_new',
+            label: '重排版面',
+          },
+          {
+            value: 'trans_all_both_inherit',
+            label: '继承原版面',
+          },
+        ],
+      },
+    ],
+  },
+]
+
+const target_tip = computed(() => {
+  return "翻译完成！共计翻译" + this.target_count + "字数，" + this.target_time
+})
+
+const accpet_tip = computed(() => {
+  return accepts.split(",").join("/")
+})
+
+watch(form, async (o, n) => {
+  if (n) {
+    if (n.files.length > 1) {
+      langMultipleLimit.value = 1
+      if (form.value.langs.length > 1) {
+        form.value.langs = []
+      }
+      // langMultiSelected.value=false
+    } else {
+      // langMultiSelected.value=true
+      langMultipleLimit.value = 5
+    }
+  }
+}, { deep: true })
+
+watch(() => store.level, (n, o) => {
+  if (n == 'vip') {
+    form.value.server = 'member'
+  } else {
+    form.value.server = 'openai'
+  }
+})
+
+onMounted(() => {
+  getTranslatesData(1)
+  storage().then(data => {
+    if (data.code == 0) {
+      storageTotal.value = data.data.storage
+      storageUsed.value = data.data.used
+      storagePercentage.value = data.data.percentage
+    }
+  })
+  translateSetting().then(data => {
+    if (data.code == 0) {
+      let setting = data.data
+      form.value.api_url = setting.api_url
+      form.value.api_key = setting.api_key
+      models.value = setting.models
+      console.log(setting.models)
+      console.log(models.value)
+      form.value.model = setting.default_model
+      form.value.backup_model = setting.default_backup
+      form.value.prompt = setting.prompt
+      form.value.threads = setting.threads
+    }
+    if (localStorage.getItem("api_url")) {
+      form.value.api_url = localStorage.getItem("api_url")
+    }
+    if (localStorage.getItem("api_key")) {
+      form.value.api_key = localStorage.getItem("api_key")
+    }
+    if (localStorage.getItem("model")) {
+      form.value.model = localStorage.getItem("model")
+    }
+    if (localStorage.getItem("model")) {
+      form.value.model = localStorage.getItem("model")
+    }
+    if (localStorage.getItem("backup_model")) {
+      form.value.backup_model = localStorage.getItem("backup_model")
+    }
+    if (localStorage.getItem("threads")) {
+      form.value.threads = localStorage.getItem("threads")
+    }
+    if (localStorage.getItem("prompt")) {
+      form.value.prompt = localStorage.getItem("prompt")
+    }
+  })
+})
+
+function flhandleFileListChange(file, fileList) {
+  fileListShow.value = fileList.length > 0 ? true : false;
+}
+
+function check() {
+  checking.value = true
+  check_text.value = "检查中..."
+  checkOpenAI(form.value).then(data => {
+    checking.value = false
+    if (data.code == 0) {
+      check_text.value = "成功"
+    } else {
+      check_text.value = "失败"
+      ElMessage({
+        message: data.message,
+        type: "error",
+      })
     }
 
-    const form=ref({
-        files:[],
-        server:store.level=='vip' ? 'member' : 'openai',
-        api_url:"https://api.openai.com",
-        api_key:"",
-        model:"",
-        backup_model:"",
-        langs:localStorage.getItem("langs") ? JSON.parse(localStorage.getItem("langs")) : [],
-        lang:"",
-        type:cache_type,
-        uuid:"",
-        prompt:"你是一个文档翻译助手，请将以下文本、单词或短语直接翻译成{target_lang}，不返回原文本。如果文本中包含{target_lang}文本、特殊名词（比如邮箱、品牌名、单位名词如mm、px、℃等）、无法翻译等特殊情况，请直接返回原文而无需解释原因。遇到无法翻译的文本直接返回原内容。保留多余空格。",
-        threads:10,
-        scanned: false, // 添加 scanned 字段
-        origin_lang: '', // 添加起始语言字段
+  }).catch(err => {
+    checking.value = false
+    check_text.value = "失败"
+    ElMessage({
+      message: "接口异常",
+      type: "error",
     })
+  })
+}
 
-    const models=ref([])
-    const langs=['中文','英语','日语','俄语','阿拉伯语','西班牙语']
+//翻译设置取消
+function formCancel() {
+  formSet.value = {};
+  emit('set-hide')
+}
 
-    const rules={
-        files: [
-            { required: true, message: '请上传文件', trigger: 'blur' },
-        ],
-        server: [
-            { required: true, message: '请选择供应商', trigger: 'blur' },
-        ],
-        type: [
-            { required: true, message: '请选择译文形式', trigger: 'blur' },
-        ],
-        model: [
-            { required: true, message: '请选择模型', trigger: 'blur' },
-        ],
-        langs: [
-            { required: true, message: '请选择翻译目标语言', trigger: 'blur' },
-        ],
-        prompt: [
-            { required: true, message: '请填写系统提示语', trigger: 'blur' },
-        ]
+//翻译设置确认
+function formConfim(transformRef) {
+  transformRef.validate((valid, messages) => {
+    if (valid) {
+      if (formSet.value.scanned) {
+        if (formSet.value.origin_lang == "") {
+          ElMessage({
+            message: "请选择pdf文件的原始语言",
+            type: "error",
+          })
+          return
+        }
+      }
+
+      form.value = formSet.value;
+      //确认
+      localStorage.setItem("server", form.value.server)
+      localStorage.setItem("api_url", form.value.api_url)
+      localStorage.setItem("api_key", form.value.api_key)
+      localStorage.setItem("model", form.value.model)
+      localStorage.setItem("langs", JSON.stringify(form.value.langs))
+      localStorage.setItem("type", JSON.stringify(form.value.type))
+      localStorage.setItem("prompt", form.value.prompt)
+      localStorage.setItem("threads", form.value.threads)
     }
+  })
+}
 
-    const types = [
-        {
-            value: 'trans_text',
-            label: '仅文字部分',
-            children: [
-                {
-                    value: 'trans_text_only',
-                    label: '仅译文',
-                    children: [
-                        {
-                            value: 'trans_text_only_new',
-                            label: '重排版面',
-                        },
-                        {
-                            value: 'trans_text_only_inherit',
-                            label: '继承原版面',
-                        },
-                    ],
-                },
-                {
-                    value: 'trans_text_both',
-                    label: '原文+译文',
-                    children: [
-                        {
-                            value: 'trans_text_both_new',
-                            label: '重排版面',
-                        },
-                        {
-                            value: 'trans_text_both_inherit',
-                            label: '继承原版面',
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            value: 'trans_all',
-            label: '全部内容',
-            children: [
-                {
-                    value: 'trans_all_only',
-                    label: '仅译文',
-                    children: [
-                        {
-                            value: 'trans_all_only_new',
-                            label: '重排版面',
-                        },
-                        {
-                            value: 'trans_all_only_inherit',
-                            label: '继承原版面',
-                        },
-                    ],
-                },
-                {
-                    value: 'trans_all_both',
-                    label: '原文+译文',
-                    children: [
-                        {
-                            value: 'trans_all_both_new',
-                            label: '重排版面',
-                        },
-                        {
-                            value: 'trans_all_both_inherit',
-                            label: '继承原版面',
-                        },
-                    ],
-                },
-            ],
-        },
-    ]
-
-    const target_tip=computed(()=>{
-        return "翻译完成！共计翻译"+this.target_count+"字数，"+this.target_time
+//立即翻译方法
+function translate(transform, source) {
+  if (!store.token) {
+    emit('should-auth')
+    return;
+  }
+  if (form.value.files.length <= 0) {
+    ElMessage({
+      message: '请上传文件',
+      type: "error",
     })
+    return;
+  }
 
-    const accpet_tip=computed(()=>{
-        return accepts.split(",").join("/")
-    })
-
-    watch(form,async(o,n)=>{
-        console.log(n)
-        if(n){
-            console.log(n.files)
-            localStorage.setItem("server", n.server)
-            localStorage.setItem("api_url", n.api_url)
-            localStorage.setItem("api_key", n.api_key)
-            localStorage.setItem("model", n.model)
-            localStorage.setItem("langs", JSON.stringify(n.langs))
-            localStorage.setItem("type", JSON.stringify(n.type))
-            localStorage.setItem("prompt", n.prompt)
-            localStorage.setItem("threads", n.threads)
-            if(n.files.length>1){
-               langMultipleLimit.value=1
-               if(form.value.langs.length>1){
-                    form.value.langs=[]
-               }
-               // langMultiSelected.value=false
-            }else{
-                // langMultiSelected.value=true
-                langMultipleLimit.value=5
-            }
-        }
-    },{ deep: true })
-
-    watch(()=>store.level, (n,o)=>{
-        if(n=='vip'){
-            form.value.server='member'
-        }else{
-            form.value.server='openai'
-        }
-    })
-
-    onMounted(()=>{
+  if (source == "mobile") {
+    translateDialog.value = true
+  }
+  let langs = []
+  if (!Array.isArray(form.value.langs)) {
+    langs = [form.value.langs]
+  } else {
+    langs = form.value.langs
+  }
+  result.value = {}
+  form.value.files.forEach(file => {
+    form.value.file_name = file.file_name
+    form.value.file_path = file.file_path
+    langs.forEach(lang => {
+      form.value.lang = lang
+      form.timestamp = new Date().getTime();
+      let uuid = hash(form.value)
+      console.log(uuid)
+      // let uuid=file.uuid+"-"+lang
+      form.value.uuid = uuid
+      translating[uuid] = true
+      console.log(translating)
+      result.value[uuid] = {
+        file_name: file.file_name,
+        file_path: file.file_path,
+        uuid: uuid,
+        lang: lang,
+        percentage: 0,
+        disabled: true,
+        link: ''
+      }
+      // return
+      process(uuid, source)
+      transalteFile(form.value).then(data => {
         getTranslatesData(1)
-        storage().then(data=>{
-            if(data.code==0){
-                storageTotal.value=data.data.storage
-                storageUsed.value=data.data.used
-                storagePercentage.value=data.data.percentage
-            }
-        })
-        translateSetting().then(data=>{
-            if(data.code==0){
-                let setting=data.data
-                form.value.api_url=setting.api_url
-                form.value.api_key=setting.api_key
-                models.value=setting.models
-                console.log(setting.models)
-                console.log(models.value)
-                form.value.model=setting.default_model
-                form.value.backup_model=setting.default_backup
-                form.value.prompt=setting.prompt
-                form.value.threads=setting.threads
-                
-
-            }
-            if(localStorage.getItem("api_url")){
-                form.value.api_url=localStorage.getItem("api_url")
-            }
-            if(localStorage.getItem("api_key")){
-                form.value.api_key=localStorage.getItem("api_key")
-            }
-            if(localStorage.getItem("model")){
-                form.value.model=localStorage.getItem("model")
-            }
-            if(localStorage.getItem("model")){
-                form.value.model=localStorage.getItem("model")
-            }
-            if(localStorage.getItem("backup_model")){
-                form.value.backup_model=localStorage.getItem("backup_model")
-            }
-            if(localStorage.getItem("threads")){
-                form.value.threads=localStorage.getItem("threads")
-            }
-            if(localStorage.getItem("prompt")){
-                form.value.prompt=localStorage.getItem("prompt")
-            }
-        })
+        // translating[uuid]=false
+        // if(data.code==0){
+        //     translated.value=true
+        //     target_url.value=API_URL+data.data.url
+        //     target_count.value=data.data.count
+        //     target_time.value=data.data.time
+        //     result.value[uuid]['link']=API_URL+data.data.url
+        //     result.value[uuid]['disabled']=false
+        //     result.value[uuid]['percentage']=100
+        // }else{
+        //     ElMessage({
+        //         message:data.msg,
+        //         type:"error",
+        //     })
+        // }
+      }).catch(data => {
+        translating[uuid] = false
+      })
     })
 
-    function check(){
-        checking.value=true
-        check_text.value="检查中..."
-        checkOpenAI(form.value).then(data=>{
-            checking.value=false
-            if(data.code==0){
-                check_text.value="成功"
-            }else{
-                check_text.value="失败"
-                ElMessage({
-                    message:data.message,
-                    type:"error",
-                })
-            }
-            
-        }).catch(err=>{
-            checking.value=false
-            check_text.value="失败"
-            ElMessage({
-                message:"接口异常",
-                type:"error",
-            })
-        })
-    }
+  })
+  setTimeout(() => {
+    getTranslatesData(1)
+  }, 2000)
+}
 
-    function translate(transform, source){
-        if(!store.token){
-            emit('should-auth')
-            return
+function process(uuid, source) {
+  console.log(translating)
+  console.log(uuid)
+  if (!translating[uuid]) {
+    return
+  }
+  transalteProcess({ uuid }).then(data => {
+    if (data.code == 0) {
+      if (data.data.process == 1) {
+        if (source == "mobile") {
+          translateDialog.value = true
         }
-        transform.validate((valid,messages) => {
-            if(valid){
-                if(form.value.scanned){
-                    if(form.value.origin_lang==""){
-                        ElMessage({
-                            message:"请选择pdf文件的原始语言",
-                            type:"error",
-                        })
-                        return
-                    }
-                }
-                if(source=="mobile"){
-                    translateDialog.value=true
-                }
-                let langs=[]
-                if(!Array.isArray(form.value.langs)){
-                    langs=[form.value.langs]
-                }else{
-                    langs=form.value.langs
-                }
-                result.value={}
-                form.value.files.forEach(file=>{
-                    form.value.file_name=file.file_name
-                    form.value.file_path=file.file_path
-                    langs.forEach(lang=>{
-                        form.value.lang=lang
-                        form.timestamp=new Date().getTime();
-                        let uuid=hash(form.value)
-                        console.log(uuid)
-                        // let uuid=file.uuid+"-"+lang
-                        form.value.uuid=uuid
-                        translating[uuid]=true
-                        console.log(translating)
-                        result.value[uuid]={
-                            file_name:file.file_name,
-                            file_path:file.file_path,
-                            uuid:uuid,
-                            lang:lang,
-                            percentage:0, 
-                            disabled:true,
-                            link:''
-                        }
-                        // return
-                        process(uuid,source)
-                        transalteFile(form.value).then(data=>{
-                            getTranslatesData(1)
-                            // translating[uuid]=false
-                            // if(data.code==0){
-                            //     translated.value=true
-                            //     target_url.value=API_URL+data.data.url
-                            //     target_count.value=data.data.count
-                            //     target_time.value=data.data.time
-                            //     result.value[uuid]['link']=API_URL+data.data.url
-                            //     result.value[uuid]['disabled']=false
-                            //     result.value[uuid]['percentage']=100
-                            // }else{
-                            //     ElMessage({
-                            //         message:data.msg,
-                            //         type:"error",
-                            //     })
-                            // }
-                        }).catch(data=>{
-                            translating[uuid]=false
-                        })
-                    })
-                    
-                })
-                setTimeout(()=>{
-                    getTranslatesData(1)
-                },2000)
-            }else{
-                for(var field in messages){
-                    messages[field].forEach(message=>{
-                        ElMessage({
-                            message:message['message'],
-                            type:"error",
-                        })
-                    })
-                }
-            }
-           
-        })
+        // Reflect.set(translating, uuid, false)
+        translating[uuid] = false
+        translated.value = true
+        target_url.value = API_URL + data.data.url
+        target_count.value = data.data.count
+        target_time.value = data.data.time
+        result.value[uuid]['link'] = API_URL + data.data.url
+        result.value[uuid]['disabled'] = false
+      } else {
+        setTimeout(() => process(uuid, source), 1000)
+      }
+      if (data.data.process != "") {
+        result.value[uuid]['percentage'] = (parseFloat(data.data.process) * 100).toFixed(1)
+      }
+    } else {
+      ElMessage({
+        message: data.message,
+        type: "error",
+        duration: 5000
+      })
+      getTranslatesData(1)
+      delete result.value[uuid]
     }
+  })
+}
 
-    function process(uuid,source){
-        console.log(translating)
-        console.log(uuid)
-        if(!translating[uuid]){
-            return
-        }
-        transalteProcess({uuid}).then(data=>{
-            if(data.code==0){
-                if(data.data.process==1){
-                    if(source=="mobile"){
-                        translateDialog.value=true                            
-                    }
-                    // Reflect.set(translating, uuid, false)
-                    translating[uuid]=false
-                    translated.value=true
-                    target_url.value=API_URL+data.data.url
-                    target_count.value=data.data.count
-                    target_time.value=data.data.time
-                    result.value[uuid]['link']=API_URL+data.data.url
-                    result.value[uuid]['disabled']=false
-                }else{
-                    setTimeout(()=>process(uuid,source), 1000)
-                }
-                if(data.data.process!=""){
-                    result.value[uuid]['percentage']=(parseFloat(data.data.process)*100).toFixed(1)
-                }
-            }else{
-                ElMessage({
-                    message:data.message,
-                    type:"error",
-                    duration: 5000
-                })
-                getTranslatesData(1)
-                delete result.value[uuid]
-            }
-        })
-    }
+function changeFile() {
+  uploaded.value = false
+}
 
-    function changeFile(){
-        uploaded.value=false
-    }
-
-    function beforeUpload(file){
-        console.log(file)
-        if(!store.token){
-            emit('should-auth')
-            return false
-        }
-        let ext=file.name.split(".").pop()
-        if(!accepts.split(",").includes("."+ext)){
-            ElMessage({
-                message:"不支持该文件格式",
-                type:"error",
-                duration: 5000
-            })
-            return false
-        }
-    }
-
-    function uploadSuccess(data){
-        if(data.code==0){
-            form.value.files.push({
-                file_path:data.data.filepath,
-                file_name:data.data.filename,
-                uuid:data.data.uuid
-            })
-            uploaded.value=true
-            let ext=data.data.filename.split('.').pop()
-            if(ext=="pdf"){
-                checkPdf(data.data.filepath).then(result => {
-                    console.log(result)
-                    form.value.scanned = result.data.scanned // 更新表单的 scanned 值
-                })
-            }
-        }else{
-            ElMessage({
-                message:data.message,
-                type:"error",
-            })
-        }
-    }
-
-    function uploadError(data){
-        ElMessage({
-                message:"文件上传失败，请检查文件是否超过10M",
-                type:"error",
-            })
-    }
-
-    function delUploadFile(file, files){
-        let filepath=''
-        form.value.files.forEach((item,index)=>{
-            if(item.file_name==file.name){
-                filepath=item.file_path
-                form.value.files.splice(index,1)
-            }
-        })
-        delFile(filepath)
-        console.log(result.value)
-        for(let uuid in result.value){
-
-            if(result.value[uuid]['file_name']==file.name){
-                delete result.value[uuid]
-            }
-        }
-    }
-
-    function getTranslatesData(page){
-        translates({page,limit:translatesLimit.value}).then(data=>{
-            if(data.code==0){
-                console.log(data.data.data)
-                translatesData.value=data.data.data
-                translatesTotal.value=data.data.total
-            }
-        })
-    }
-
-    function delTransFile(id){
-        ElMessageBox.confirm('是否确定要删除？','提示',{
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning',
-        }).then(() => {
-            delTranslate(id).then((data)=>{
-                if(data.code==0){
-                    translatesData.value=translatesData.value.filter(item=>item.id!=id)
-                }
-            })
-        })
-    }
-
-    function delAllTransFile(){
-        ElMessageBox.confirm('是否确定要删除全部？','提示',{
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning',
-        }).then(() => {
-            delAllTranslate().then((data)=>{
-                if(data.code==0){
-                    translatesData.value=[]
-                }
-            })
-        })
-    }
-
-    store.setTitle("EZ-work AI文档翻译")
-
-    // 定义语言映射
-    const languageMap = {
-        'chi_sim': '中文（简体）',
-        'chi_tra': '中文（繁体）',
-        'eng': '英语',
-        'jpn': '日语',
-        'kor': '韩语',
-        'fra': '法语',
-        'spa': '西班牙语',
-        'rus': '俄语',
-        'ara': '阿拉伯语',
-        'deu': '德语',
-        // ... 添加更多 Tesseract 支持的语言
-    }
-
-    // 创建语言选项数组
-    const languageOptions = computed(() => {
-        return Object.entries(languageMap).map(([value, label]) => ({
-            value,
-            label
-        }))
+function beforeUpload(file) {
+  console.log(file)
+  if (!store.token) {
+    emit('should-auth')
+    return false
+  }
+  let ext = file.name.split(".").pop()
+  if (!accepts.split(",").includes("." + ext)) {
+    ElMessage({
+      message: "不支持该文件格式",
+      type: "error",
+      duration: 5000
     })
+    return false
+  }
+}
+
+function uploadSuccess(data) {
+  if (data.code == 0) {
+    form.value.files.push({
+      file_path: data.data.filepath,
+      file_name: data.data.filename,
+      uuid: data.data.uuid
+    })
+    let ext = data.data.filename.split('.').pop()
+    if (ext == "pdf") {
+      checkPdf(data.data.filepath).then(result => {
+        console.log(result)
+        form.value.scanned = result.data.scanned // 更新表单的 scanned 值
+      })
+    }
+  } else {
+    ElMessage({
+      message: data.message,
+      type: "error",
+    })
+  }
+}
+
+function uploadError(data) {
+  ElMessage({
+    message: "文件上传失败，请检查文件是否超过10M",
+    type: "error",
+  })
+}
+
+function delUploadFile(file, files) {
+  let filepath = ''
+  form.value.files.forEach((item, index) => {
+    if (item.file_name == file.name) {
+      filepath = item.file_path
+      form.value.files.splice(index, 1)
+    }
+  })
+  delFile(filepath)
+  console.log(result.value)
+  for (let uuid in result.value) {
+
+    if (result.value[uuid]['file_name'] == file.name) {
+      delete result.value[uuid]
+    }
+  }
+}
+
+function getTranslatesData(page) {
+  translates({ page, limit: translatesLimit.value }).then(data => {
+    if (data.code == 0) {
+      console.log(data.data.data)
+      translatesData.value = data.data.data
+      translatesTotal.value = data.data.total
+    }
+  })
+}
+
+function delTransFile(id) {
+  ElMessageBox.confirm('是否确定要删除？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    delTranslate(id).then((data) => {
+      if (data.code == 0) {
+        translatesData.value = translatesData.value.filter(item => item.id != id)
+      }
+    })
+  })
+}
+
+function delAllTransFile() {
+  ElMessageBox.confirm('是否确定要删除全部？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    delAllTranslate().then((data) => {
+      if (data.code == 0) {
+        translatesData.value = []
+      }
+    })
+  })
+}
+
+store.setTitle("EZ-work AI文档翻译")
+
+// 定义语言映射
+const languageMap = {
+  'chi_sim': '中文（简体）',
+  'chi_tra': '中文（繁体）',
+  'eng': '英语',
+  'jpn': '日语',
+  'kor': '韩语',
+  'fra': '法语',
+  'spa': '西班牙语',
+  'rus': '俄语',
+  'ara': '阿拉伯语',
+  'deu': '德语',
+  // ... 添加更多 Tesseract 支持的语言
+}
+
+// 创建语言选项数组
+const languageOptions = computed(() => {
+  return Object.entries(languageMap).map(([value, label]) => ({
+    value,
+    label
+  }))
+})
 
 </script>
-<style type="text/css">
-    .form-container .el-input-number .el-input__inner{
-        text-align: left;
+<style scoped lang="scss">
+.page-center {
+  flex: 1;
+  overflow-y: auto;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.upload-container {
+  background: #ffffff;
+  box-shadow: 0px 12px 20px 0px rgba(228, 238, 253, 0.5);
+  border-radius: 12px;
+  width: 100%;
+  padding: 28px 28px;
+  box-sizing: border-box;
+  margin-top: 20px;
+}
+::v-deep {
+  .dropzone {
+    position: relative;
+    .el-upload-dragger {
+      border: 2px dashed #ccdaff;
+      border-radius: 12px;
+      padding-left: 0;
+      padding-right: 0;
     }
-    .language-selection {
+    .el-upload-list {
+      position: absolute;
+      width: 50%;
+      left: 0;
+      top: 50%;
+      transform: translate(0, -50%);
+      box-sizing: border-box;
+      padding-left: 36px;
+      padding-right: 36px;
+      .el-upload-list__item:hover {
+        background: #fff;
+        .el-upload-list__item-file-name {
+          color: var(--el-color-primary);
+        }
+      }
+      .el-upload-list__item {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .el-upload-list__item-info {
+        max-width: 90%;
+        width: auto;
+        .el-icon {
+          display: none;
+        }
+      }
+      .el-upload-list__item-status-label {
+        position: relative;
+        right: 0;
+      }
+      .el-icon--close {
+        position: relative;
+        top: 0;
+        right: 0;
+        transform: none;
+      }
+    }
+    .left_box {
+      width: 50%;
+      float: left;
+      height: 224px;
+      border-right: 2px dashed #bcd4ff;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      img {
+        margin: 0 15px;
+      }
+    }
+    .right_box {
+      width: 50%;
+      float: right;
+      height: 224px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      padding: 0 20px;
+      .title {
+        font-family: PingFang SC;
+        font-weight: bold;
+        font-size: 18px;
+        color: #111111;
+        line-height: 24px;
+      }
+      .tips {
+        font-family: PingFang SC;
+        font-weight: 400;
+        font-size: 14px;
+        color: #666666;
+        line-height: 18px;
+      }
+      .upload_btn {
+        margin-top: 24px;
+        margin-bottom: 18px;
+        width: 180px;
+        height: 40px;
+        background: #f7faff;
+        border-radius: 4px;
+        border: 1px dashed #055cf9;
         display: flex;
         align-items: center;
-        gap: 10px; /* 调整元素之间的间距 */
-        width: 100%;
+        justify-content: center;
+        outline: none;
+        cursor: pointer;
+        img {
+          height: 18px;
+        }
+        span {
+          font-family: PingFang SC;
+          font-weight: bold;
+          font-size: 16px;
+          color: #045cf9;
+          margin-left: 12px;
+        }
+      }
     }
+  }
 
-    .lang-select {
-        width: 100%; /* 默认宽度为100% */
-        transition: width 0.3s ease; /* 添加过渡效果 */
+  .custom_dialog {
+    .el-dialog {
+      padding: 20px 30px 20px 30px;
     }
+    .el-dialog__title {
+      color: #111111;
+    }
+    .el-dialog__headerbtn {
+      font-size: 20px;
+      right: 10px;
+      top: 10px;
+      i {
+        color: #111;
+      }
+    }
+    .el-dialog__body {
+      padding: 0 30px 0 30px;
+    }
+    .el-form-item {
+      .el-form-item__label {
+        justify-content: flex-start;
+        color: #111111;
+      }
+      .el-input-number .el-input__inner {
+        text-align: left;
+      }
+    }
+    .btn_box {
+      position: relative;
+      text-align: center;
+      .btn_check {
+        position: absolute;
+        left: 0;
+      }
+    }
+  }
 
-    .language-selection:has(.conversion-symbol) .lang-select {
-        width: 100%; /* 当有转换符号时，设置宽度为45% */
-    }
-
-    .conversion-symbol {
-        font-size: 20px;
-        color: #409EFF; /* 使用 Element Plus 的主色调，可以根据需要调整 */
-        flex-shrink: 0; /* 防止符号被压缩 */
-    }
+  .fixed_bottom {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #fff;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+  }
+}
+</style>
+<style type="text/css" lang="scss">
+.language-selection {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* 调整元素之间的间距 */
+  width: 100%;
+}
+.lang-select {
+  width: 100%; /* 默认宽度为100% */
+  transition: width 0.3s ease; /* 添加过渡效果 */
+}
+.language-selection:has(.conversion-symbol) .lang-select {
+  width: 100%; /* 当有转换符号时，设置宽度为45% */
+}
+.conversion-symbol {
+  font-size: 20px;
+  color: #409eff; /* 使用 Element Plus 的主色调，可以根据需要调整 */
+  flex-shrink: 0; /* 防止符号被压缩 */
+}
 </style>
 <style type="text/css">
-    .page-title{
-        margin-top: 15px;
-        margin-bottom: 20px;
-        font-size: 24px;
-        font-weight: bold;
-        font-family: "PingFang-SC-Bold";
-        text-align: center;
-    }
-    .container{
-        display: flex;
-        align-self: center;
-        flex-wrap: wrap;
-        margin:8px;
-    }
-    .left,.right{
-        flex: 1 1;
-    }
-    .container .blank{
-        flex: auto 0;
-        width: 10%;
-    }
-    .dropzone {
-        width: calc(100% - 48px);
-        height: calc(100% - 48px);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-    }
-    .dropzone .el-upload{
-        margin-bottom: 8px;
-    }
-    .dropzone .el-upload,.dropzone .el-upload-dragger{
-        width: 100%;
-        height: 100%;
-        background-color: #F5F6FA;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .center{
-        text-align: center;
-    }
-    .hide{
-        display: none;
-    }
-    .upload-container,.form-container,.download-container{
-        border: 1px solid gray;
-        display: flex;
-        justify-content: center;
-        flex-direction: column;
-        align-items: center;
-        border: 1px solid #E0E4F7;
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        min-width: 300px;
-    }
-    .upload-container{
-        text-align: center;
-        overflow: auto;
-    }
-    .upload-container{
-        height: 260px;
-    }
-    .translated-container{
-        border: 1px solid gray;
-        border: 1px solid #E0E4F7;
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        min-width: 300px;
-        height: 380px;
-        margin-bottom: 16px;
-        padding: 20px;
-        overflow: auto;
-    }
-    .form-container{
-        height: 500px;
-        overflow: auto;
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-    .upload-container{
-        margin-bottom: 16px;
-    }
-    .upload-container,.form-container{
-        margin-right: 16px;
-    }
-    .download-container{
-        height: 368px;
-        text-align: center;
-        display: block;
-        overflow: auto;
-    }
-    .form-container form{
-        width: calc(100% - 48px);
-        height: 100%;
-    }
-    .item-container{
-        line-height: 50px;
-        display: flex;
-        flex-direction: row;
-        margin-bottom: 16px;
-    }
-    .item-container .required{
-        color: #FF0000;
-        font-size: 14px;
-    }
-    .item-container > span{
-        flex: atuo 0;
-        font-size: 14px;
-        font-family: "PingFang SC";
-        font-weight: 400;
-        color: #111111;
-        line-height: 38px;
-    }
-    /*.item-container select,.item-container input, .item-container textarea{
+.hide {
+  display: none;
+}
+
+.translated-container {
+  border: 1px solid gray;
+  border: 1px solid #e0e4f7;
+  background-color: #ffffff;
+  border-radius: 12px;
+  min-width: 300px;
+  height: 380px;
+  margin-bottom: 16px;
+  padding: 20px;
+  overflow: auto;
+}
+.form-container {
+  height: 500px;
+  overflow: auto;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.download-container {
+  height: 368px;
+  text-align: center;
+  display: block;
+  overflow: auto;
+}
+.form-container form {
+  width: calc(100% - 48px);
+  height: 100%;
+}
+.item-container {
+  line-height: 50px;
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 16px;
+}
+.item-container .required {
+  color: #ff0000;
+  font-size: 14px;
+}
+.item-container > span {
+  flex: atuo 0;
+  font-size: 14px;
+  font-family: "PingFang SC";
+  font-weight: 400;
+  color: #111111;
+  line-height: 38px;
+}
+/*.item-container select,.item-container input, .item-container textarea{
         flex: auto 1;
         border: 1px solid #DCDEE2;
     }*/
-    #file_upload{
-        display: none;
-    }
-    .translated img, .translate-loading img{
-        width: 80px;
-        height: 80px;
-    }
-    .translate-btn {
-        line-height: 36px;
-        width: 180px;
-        color: white;
-        border: none;
-        background: #055CF9;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .wait-upload .upload_tip{
-        margin-top: 36px;
-        margin-bottom: 10px;
-        color: #333333;
-        font-size: 16px;
-        font-weight: 400;
-    }
-    .wait-upload span{
-        color: #666666;
-        font-size: 14px;
-        font-weight: 400;
-    }
-    .upload-success{
-        font-family: "PingFang SC";
-        font-weight: bold;
-        font-size: 16px;
-        color: #333333;
-    }
-    .upload-filename{
-        font-family: "PingFang SC";
-        font-weight: 400;
-        font-size: 14px;
-        color: #055CF9;
-        margin-bottom: 13px;
-        margin-top: 23px;
-    }
-    .re-upload{
-        font-family: "PingFang SC";
-        font-weight: 400;
-        font-size: 12px;
-        color: #666666;
-    }
-    .download-button{
-        line-height: 36px;
-        width: 120px;
-        display: inline-block;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        background: #055CF9;
-    }
-    #upload_btn{
-        font-family: "PingFang SC";
-        width: 180px;
-        height: 40px;
-        background-color: #F4F8FF;
-        border: 1px dashed #055CF9;
-        flex-direction: row;
-        align-items: center;
-        display: inline-flex;
-        text-align: center;
-    }
-    #upload_btn img{
-        width: 20px;
-        height: 20px;
-        margin-right: 9px;
-        flex: auto 0;
-    }
-    #upload_btn span:first-child, #upload_btn span:last-child{
-        flex: auto 1;
-    }
-    #upload_btn span{
-        font-size: 16px;
-        font-family: "PingFang SC";
-        font-weight: bold;
-        color: #055CF9;
-    }
-    .translate_btn{
-        line-height: 36px;
-        width: 180px;
-        color: white;
-        border: none;
-        background: #055CF9;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-bottom: 20px;
-    }
-    /*form input,form select,form textarea{
+#file_upload {
+  display: none;
+}
+.translated img,
+.translate-loading img {
+  width: 80px;
+  height: 80px;
+}
+.translate-btn {
+  line-height: 36px;
+  width: 180px;
+  color: white;
+  border: none;
+  background: #055cf9;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.wait-upload .upload_tip {
+  margin-top: 36px;
+  margin-bottom: 10px;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 400;
+}
+.wait-upload span {
+  color: #666666;
+  font-size: 14px;
+  font-weight: 400;
+}
+.upload-success {
+  font-family: "PingFang SC";
+  font-weight: bold;
+  font-size: 16px;
+  color: #333333;
+}
+.upload-filename {
+  font-family: "PingFang SC";
+  font-weight: 400;
+  font-size: 14px;
+  color: #055cf9;
+  margin-bottom: 13px;
+  margin-top: 23px;
+}
+.re-upload {
+  font-family: "PingFang SC";
+  font-weight: 400;
+  font-size: 12px;
+  color: #666666;
+}
+.download-button {
+  line-height: 36px;
+  width: 120px;
+  display: inline-block;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  background: #055cf9;
+}
+
+.translate_btn {
+  line-height: 36px;
+  width: 180px;
+  color: white;
+  border: none;
+  background: #055cf9;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+/*form input,form select,form textarea{
         line-height: 32px;
         width: 220px;
         height: 32px;
@@ -955,195 +1077,166 @@
     textarea.system{
         height: 120px;
     }*/
-    .item-container > span{
-        display: inline-block;
-        width: 80px;
-    }
-    .dropzone form{
-        width: 100%;
-    }
-    .model-custom{
-        display: none;
-    }
-    .process-bar{
-        width: 240px;
-        height: 8px;
-        background: #EFEFEF;
-        border-radius: 4px;
-        position: relative;
-    }
-    .process-bar > span{
-        height: 8px;
-        background: #055CF9;
-        border-radius: 4px;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-    .process-tip{
-        font-size: 16px;
-        font-family: "PingFang SC";
-        font-weight: 400;
-        color: #055CF9;
-    }
-    .completed-text{
-        margin-top: 8px;
-        margin-bottom: 20px;
-    }
-    .form-btns{
-        position: relative;
-        padding-bottom: 15px;
-    }
-    .check-container{
-        position: absolute;
-        left: 12px;
-        top: 5px;
-        display: flex;
-        justify-content: center;
-        flex-direction: row;
-        align-items: center;
-        height: calc(100% - 20px);
-    }
-    .check_btn{
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        line-height: 36px;
-        font-size: 14px;
-        color: #055CF9;
-        text-decoration-line: underline;
-    }
-    .check-status{
-        font-size: 12px;
-        width: 44px;
-        height: 24px;
-        border-radius: 4px;
-        font-weight: 400;
-        display: inline-block;
-        line-height: 24px;
-    }
-    .check-status.success{
-        color: #52C41A;
-        border: 1px solid #A7E1A9;
+.item-container > span {
+  display: inline-block;
+  width: 80px;
+}
+.dropzone form {
+  width: 100%;
+}
+.model-custom {
+  display: none;
+}
+.process-bar {
+  width: 240px;
+  height: 8px;
+  background: #efefef;
+  border-radius: 4px;
+  position: relative;
+}
+.process-bar > span {
+  height: 8px;
+  background: #055cf9;
+  border-radius: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.process-tip {
+  font-size: 16px;
+  font-family: "PingFang SC";
+  font-weight: 400;
+  color: #055cf9;
+}
+.completed-text {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+.check-container {
+  position: absolute;
+  left: 12px;
+  top: 5px;
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  align-items: center;
+  height: calc(100% - 20px);
+}
 
-    }
-    .check-status.fail{
-        background: #FFF2F0;
-        border: 1px solid #FFCCC7;
-        color: #FF4D4F;
-    }
-    .check-loading{
-        display: none;
-        width: 21px;
-        height: 21px;
-    }
-    .api-key-container{
-        position: relative;
-    }
-    .api-key-container img{
-        position: absolute;
-        right: 8px;
-        width: 16px;
-        height: 12px;
-        margin-top: 12px;
-    }
-    .translate-container{
-        text-align: center;
-    }
-    .translate-card{
-        margin-bottom: 10px;
-        margin-left: 15px;
-        margin-right: 15px;
-    }
-    .translated-header{
-        display: flex;
-        align-items: center;
-    }
-    .translated-header h2{
-        margin-right: 30px;
-        display: inline-block;
-        font-family: 'PingFang SC';
-        font-weight: bold;
-        font-size: 16px;
-        color: #000000;
-    }
-    .translated-header .storage{
-        margin-right: 30px;
-    }
-    .translated-process{
-        width:300px;
-        display: inline-block;
-    }
-    .card-header{
-        font-family: 'PingFang SC';
-        font-weight: 400;
-        font-size: 14px;
-        color: #333333;
-        text-align: left;
-        margin-bottom: 10px;
-        margin-top: 25px;
-    }
-    .progress{
-        border-radius: 4px;
-    }
-    .percentage{
-        font-weight: 400;
-        font-size: 14px;
-        margin-left: 18px;
-        margin-right: 20px;
-        color: #333333;
-    }
-    .download-link-disable{
-        font-weight: 400;
-        font-size: 14px;
-        color: #BBBBBB;
-    }
-    .download-link{
-        font-weight: 400;
-        font-size: 14px;
-        color: #055CF9;
-    }
-    .download-container .el-progress-bar__inner,.translate-container .el-progress-bar__inner{
-        background-color: #055CF9 !important;
-    }
-    .type-cascader{
-        width: 100%;
-    }
-    @media screen and (max-width:800px){
-        .container .blank{
-            width: 0%;
-        }
-        .upload-container, .form-container{
-            margin-right: 0px;
-            overflow:visible;
-        }
-        .form-container{
-            height: auto;
-            padding-top: 30px;
-            padding-bottom: 30px;
-            margin-bottom: 77px;
-        }
-        .form-container .form-btns{
-            display: none;
-        }
-        .page-title{
-            font-size: 18px;
-        }
-        .static.form-btns{
-            display: inline-block;
-            display: inline-block;
-            position: fixed;
-            bottom: 0;
-            width: 100vw;
-            text-align: center;
-            background-color: #FFFFFF;
-            padding: 16px 0;
-        }
-        .static .translate_btn{
-            margin-bottom:0px;
-        }
-        .right{
-            display: none;
-        }
-    }
+.check-loading {
+  display: none;
+  width: 21px;
+  height: 21px;
+}
+.api-key-container {
+  position: relative;
+}
+.api-key-container img {
+  position: absolute;
+  right: 8px;
+  width: 16px;
+  height: 12px;
+  margin-top: 12px;
+}
+.translate-container {
+  text-align: center;
+}
+.translate-card {
+  margin-bottom: 10px;
+  margin-left: 15px;
+  margin-right: 15px;
+}
+.translated-header {
+  display: flex;
+  align-items: center;
+}
+.translated-header h2 {
+  margin-right: 30px;
+  display: inline-block;
+  font-family: "PingFang SC";
+  font-weight: bold;
+  font-size: 16px;
+  color: #000000;
+}
+.translated-header .storage {
+  margin-right: 30px;
+}
+.translated-process {
+  width: 300px;
+  display: inline-block;
+}
+.card-header {
+  font-family: "PingFang SC";
+  font-weight: 400;
+  font-size: 14px;
+  color: #333333;
+  text-align: left;
+  margin-bottom: 10px;
+  margin-top: 25px;
+}
+.progress {
+  border-radius: 4px;
+}
+.percentage {
+  font-weight: 400;
+  font-size: 14px;
+  margin-left: 18px;
+  margin-right: 20px;
+  color: #333333;
+}
+.download-link-disable {
+  font-weight: 400;
+  font-size: 14px;
+  color: #bbbbbb;
+}
+.download-link {
+  font-weight: 400;
+  font-size: 14px;
+  color: #055cf9;
+}
+.download-container .el-progress-bar__inner,
+.translate-container .el-progress-bar__inner {
+  background-color: #055cf9 !important;
+}
+.type-cascader {
+  width: 100%;
+}
+@media screen and (max-width: 800px) {
+  .container .blank {
+    width: 0%;
+  }
+  .upload-container,
+  .form-container {
+    margin-right: 0px;
+    overflow: visible;
+  }
+  .form-container {
+    height: auto;
+    padding-top: 30px;
+    padding-bottom: 30px;
+    margin-bottom: 77px;
+  }
+  .form-container .form-btns {
+    display: none;
+  }
+  .page-title {
+    font-size: 18px;
+  }
+  .static.form-btns {
+    display: inline-block;
+    display: inline-block;
+    position: fixed;
+    bottom: 0;
+    width: 100vw;
+    text-align: center;
+    background-color: #ffffff;
+    padding: 16px 0;
+  }
+  .static .translate_btn {
+    margin-bottom: 0px;
+  }
+  .right {
+    display: none;
+  }
+}
 </style>
