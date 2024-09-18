@@ -2,7 +2,7 @@
   <div class="page-center">
     <div class="container">
       <div class="upload-container">
-        <el-upload class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile" :on-change="(file,fileList) => flhandleFileListChange(file,fileList)">
+        <el-upload ref="uploadRef" class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile" :on-change="(file,fileList) => flhandleFileListChange(file,fileList)">
           <div class="left_box">
             <div class="icon_box" v-if="!fileListShow">
               <img src="@/assets/icon_a.png" />
@@ -22,85 +22,88 @@
         </el-upload>
       </div>
 
-      <div class="left">
-
-        <!-- 翻译设置 -->
-        <div class="form-container">
-
-        </div>
-      </div>
-      <div class="right">
-        <div class="translated-container">
-          <div class="translated-header">
-            <h2>翻译任务列表</h2>
+      <div class="list_box">
+        <div class="title_box">
+          <div class="t">翻译任务列表</div>
+          <div class="t_right">
             <span class="storage">存储空间({{storageTotal}}M)</span>
-            <el-progress class="translated-process" :percentage="storagePercentage" />
-          </div>
-          <el-table :data="translatesData" fit flexible>
-            <el-table-column label="文档名称">
-              <template #default="scope">
-                <span>{{scope.row.origin_filename}}（{{scope.row.lang}}）</span>
-              </template>
-            </el-table-column>
-            <el-table-column width="160px" prop="status_name" label="任务状态" />
-            <el-table-column width="180px" label="操作">
-              <template #default="scope">
-                <el-icon v-if="scope.row.status=='done'" style="margin-right: 21px;cursor: pointer;">
-                  <el-link :href="API_URL+scope.row.target_filepath" target="_blank">
-                    <Download />
-                  </el-link>
-                </el-icon>
-                <el-icon style="cursor: pointer;">
-                  <Close @click="delTransFile(scope.row.id)" />
-                </el-icon>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div style="margin-top: 10px;display: flex;justify-content: space-between;">
-            <el-pagination layout="prev, pager, next" :total="translatesTotal" :page-size="translatesLimit" @current-change="getTranslatesData" />
-            <el-button type="danger" text plain link @click="delAllTransFile">删除全部</el-button>
+            <el-progress class="translated-process" :percentage="storagePercentage" color='#055CF9'/>
+            <el-button class="all_down">全部下载</el-button>
+            <el-button @click="delAllTransFile">全部删除</el-button>
           </div>
         </div>
-        <div class="download-container">
-          <div v-for="res in result" class="translate-card">
-            <div class="card-header">
-              <span>{{res.file_name}} ({{res.lang}})</span>
+        <div class="table_box">
+          <div class="table_row table_top">
+            <div class="table_li">文档名称</div>
+            <div class="table_li">任务状态</div>
+            <div class="table_li">用时</div>
+            <div class="table_li">完成时间</div>
+            <div class="table_li">操作</div>
+          </div>
+          <div class="table_row" v-for="(res,index) in result" :key="index">
+            <div class="table_li">
+              <img v-if="res.file_type == 'pptx'" src="@assets/PPT.png" alt="">
+              <img v-else-if="res.file_type == 'docx'" src="@assets/DOC.png" alt="">
+              <img v-else-if="res.file_type == 'xlsx'" src="@assets/Excel.png" alt="">
+              <img v-else src="@assets/PDF.png" alt="">
+              {{res.file_name}}
             </div>
-            <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
-              <template #default="{ percentage }">
-                <span class="percentage">{{percentage}}%</span>
-                <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-                <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-              </template>
-            </el-progress>
+            <div class="table_li status">
+              <el-progress class="translated-process" :percentage="res['percentage']"  color='#055CF9'>
+                <template #default="{ percentage }">
+                  <span class="percentage">{{percentage}}%</span>
+                </template>
+              </el-progress>
+              <img src="@assets/waring.png" alt="">
+              <span class="process">翻译中</span>
+            </div>
+            <div class="table_li">--</div>
+            <div class="table_li">--</div>
+            <div class="table_li">
+              <el-icon class="icon_down">
+                <Download />
+              </el-icon>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="static center form-btns hide">
-      <div class="check-container">
-        <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
-      </div>
-      <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
-    </div>
-    <el-dialog v-model="translateDialog" width="80%" modal append-to-body title="翻译">
-      <div class="translate-container">
-        <div v-for="res in result" class="translate-card">
-          <div class="card-header">
-            <span>{{res.file_name}} ({{res.lang}})</span>
-          </div>
-          <el-progress class="progress" :percentage="res['percentage']" :stroke-width="15" status="success">
-            <template #default="{ percentage }">
-              <span class="percentage">{{percentage}}%</span>
-              <el-link v-if="percentage==100" class="download-link" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-              <el-link v-else class="download-link-disable" :disabled="res['disabled']" target="_blank" type="primary" :href="res['link']">下载</el-link>
-            </template>
-          </el-progress>
-        </div>
-      </div>
-    </el-dialog>
 
-    <!-- 翻译设置 -->
+          <div class="table_row" v-for="(item,index) in translatesData" :key="index">
+            <div class="table_li">
+              <img v-if="item.file_type == 'pptx'" src="@assets/PPT.png" alt="">
+              <img v-else-if="item.file_type == 'docx'" src="@assets/DOC.png" alt="">
+              <img v-else-if="item.file_type == 'xlsx'" src="@assets/Excel.png" alt="">
+              <img v-else src="@assets/PDF.png" alt="">
+              {{item.origin_filename}}
+            </div>
+            <div class="table_li status">
+              <el-progress class="translated-process" :percentage="item.process"  color='#055CF9'/>
+              <img v-if="item.status == 'done'" src="@assets/success.png" alt="">
+              <img v-if="item.status == 'process'" src="@assets/waring.png" alt="">
+              <img v-if="item.status == 'failed'" src="@assets/error.png" alt="">
+              <span :class="item.status">{{item.status_name}}</span>
+            </div>
+            <div class="table_li">{{item.spend_time?item.spend_time:'--'}}</div>
+            <div class="table_li">{{item.end_at?item.end_at:'--'}}</div>
+            <div class="table_li">
+              <el-icon class="icon_down active" v-if="item.status=='done'">
+                <el-link :href="API_URL+item.target_filepath" target="_blank">
+                  <Download />
+                </el-link>
+              </el-icon>
+              <el-icon v-else class="icon_down">
+                <el-link :href="API_URL+item.target_filepath" target="_blank">
+                  <Download />
+                </el-link>
+              </el-icon>
+              <el-icon style="cursor: pointer;">
+                <Close @click="delTransFile(item.id)" />
+              </el-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新版翻译设置pc -->
     <el-dialog v-model="formSetShow" title="翻译设置" width="600px" modal-class="custom_dialog" @close="formCancel">
       <el-form ref="transformRef" :model="formSet" label-width="100px" :rules="rules">
         <el-form-item label="服务商" required prop="server" width="100%">
@@ -165,8 +168,18 @@
         </div>
       </el-form>
     </el-dialog>
+
+    <!-- pc 立即翻译按钮 -->
     <div class="fixed_bottom">
       <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
+    </div>
+
+    <!-- 手机端 立即翻译按钮 -->
+    <div class="static center form-btns hide">
+      <div class="check-container">
+        <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+      </div>
+      <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
     </div>
   </div>
 </template>
@@ -207,7 +220,7 @@ const upload_url = API_URL + "/api/upload"
 
 const translatesData = ref([]);
 const translatesTotal = ref(0);
-const translatesLimit = ref(10);
+const translatesLimit = ref(100);
 const langMultipleLimit = ref(5);
 const storageTotal = ref(0);
 const storageUsed = ref(0);
@@ -215,7 +228,7 @@ const storagePercentage = ref(0.0);
 
 const transformRef = ref(null)
 
-const emit = defineEmits(['should-auth', 'set-hide'])
+const emit = defineEmits(['should-auth', 'set-hide','open-set'])
 
 let cache_type = ["trans_text", "trans_text_only", "trans_text_only_inherit"]
 try {
@@ -223,6 +236,8 @@ try {
 } catch (err) {
 
 }
+
+const uploadRef = ref(null)
 
 const form = ref({
   files: [],
@@ -398,8 +413,6 @@ onMounted(() => {
       form.value.api_url = setting.api_url
       form.value.api_key = setting.api_key
       models.value = setting.models
-      console.log(setting.models)
-      console.log(models.value)
       form.value.model = setting.default_model
       form.value.backup_model = setting.default_backup
       form.value.prompt = setting.prompt
@@ -498,6 +511,7 @@ function translate(transform, source) {
     emit('should-auth')
     return;
   }
+  
   if (form.value.files.length <= 0) {
     ElMessage({
       message: '请上传文件',
@@ -505,6 +519,16 @@ function translate(transform, source) {
     })
     return;
   }
+
+  //校验设置
+  if(form.value.server == '' || form.value.type == '' || form.value.model == '' || form.value.langs.length < 1 || form.value.prompt == '' || form.value.limit == ''){
+    emit('open-set')
+    return;
+  }
+  
+  //清空上传文件列表
+  uploadRef.value.clearFiles();
+  fileListShow.value = false;
 
   if (source == "mobile") {
     translateDialog.value = true
@@ -523,53 +547,44 @@ function translate(transform, source) {
       form.value.lang = lang
       form.timestamp = new Date().getTime();
       let uuid = hash(form.value)
-      console.log(uuid)
       // let uuid=file.uuid+"-"+lang
       form.value.uuid = uuid
-      translating[uuid] = true
-      console.log(translating)
+      translating[uuid] = true;
+
+      //判断处理文档类型
+      let fileArr = file.file_name.split('.');
+      let fileType = fileArr[fileArr.length - 1];
+      let fileType_f = ''
+      if (fileType == 'docx' || fileType == 'xlsx' || fileType == 'pptx') {
+        fileType_f = fileType;
+      } else {
+        fileType_f = 'other'
+      }
       result.value[uuid] = {
         file_name: file.file_name,
         file_path: file.file_path,
+        file_type: fileType_f,
         uuid: uuid,
         lang: lang,
         percentage: 0,
         disabled: true,
         link: ''
       }
+
       // return
       process(uuid, source)
       transalteFile(form.value).then(data => {
-        getTranslatesData(1)
-        // translating[uuid]=false
-        // if(data.code==0){
-        //     translated.value=true
-        //     target_url.value=API_URL+data.data.url
-        //     target_count.value=data.data.count
-        //     target_time.value=data.data.time
-        //     result.value[uuid]['link']=API_URL+data.data.url
-        //     result.value[uuid]['disabled']=false
-        //     result.value[uuid]['percentage']=100
-        // }else{
-        //     ElMessage({
-        //         message:data.msg,
-        //         type:"error",
-        //     })
-        // }
+        getTranslatesData(1, uuid)
       }).catch(data => {
         translating[uuid] = false
       })
     })
-
   })
-  setTimeout(() => {
-    getTranslatesData(1)
-  }, 2000)
+  //循环结束，删除
+  form.value.files = [];
 }
 
 function process(uuid, source) {
-  console.log(translating)
-  console.log(uuid)
   if (!translating[uuid]) {
     return
   }
@@ -599,8 +614,8 @@ function process(uuid, source) {
         type: "error",
         duration: 5000
       })
+      delete result.value[uuid];
       getTranslatesData(1)
-      delete result.value[uuid]
     }
   })
 }
@@ -610,7 +625,6 @@ function changeFile() {
 }
 
 function beforeUpload(file) {
-  console.log(file)
   if (!store.token) {
     emit('should-auth')
     return false
@@ -636,7 +650,6 @@ function uploadSuccess(data) {
     let ext = data.data.filename.split('.').pop()
     if (ext == "pdf") {
       checkPdf(data.data.filepath).then(result => {
-        console.log(result)
         form.value.scanned = result.data.scanned // 更新表单的 scanned 值
       })
     }
@@ -664,21 +677,40 @@ function delUploadFile(file, files) {
     }
   })
   delFile(filepath)
-  console.log(result.value)
   for (let uuid in result.value) {
-
     if (result.value[uuid]['file_name'] == file.name) {
       delete result.value[uuid]
     }
   }
+  if(files.length <= 1){
+    fileListShow.value = false;
+  }
 }
 
-function getTranslatesData(page) {
-  translates({ page, limit: translatesLimit.value }).then(data => {
+function getTranslatesData(page, uuid) {
+  //删除翻译中的任务
+  if (uuid) {
+    delete result.value[uuid];
+  }
+  let skip_uuids = Object.keys(result.value);
+
+  translates({ page, limit: translatesLimit.value,skip_uuids:skip_uuids}).then(data => {
     if (data.code == 0) {
-      console.log(data.data.data)
-      translatesData.value = data.data.data
-      translatesTotal.value = data.data.total
+      data.data.data.forEach(item => {
+        //获取文档类型
+        let fileArr = item.origin_filename.split('.');
+        let fileType = fileArr[fileArr.length - 1];
+        let fileType_f = ''
+        if (fileType == 'docx' || fileType == 'xlsx' || fileType == 'pptx') {
+          fileType_f = fileType;
+        } else {
+          fileType_f = 'other'
+        }
+        item.file_type = fileType_f;
+      })
+      
+      translatesData.value = data.data.data;
+      translatesTotal.value = data.data.total;
     }
   })
 }
@@ -741,6 +773,7 @@ const languageOptions = computed(() => {
 .page-center {
   flex: 1;
   overflow-y: auto;
+  padding-bottom: 80px;
 }
 .container {
   max-width: 1200px;
@@ -783,6 +816,7 @@ const languageOptions = computed(() => {
         display: inline-flex;
         align-items: center;
         margin-bottom: 20px;
+        outline: none;
       }
       .el-upload-list__item-info {
         max-width: 90%;
@@ -914,6 +948,116 @@ const languageOptions = computed(() => {
     justify-content: center;
     z-index: 99;
   }
+
+  .list_box {
+    width: 100%;
+    margin-top: 20px;
+    background: #fff;
+    box-shadow: 0px 12px 20px 0px rgba(228, 238, 253, 0.5);
+    border-radius: 12px;
+    padding: 0 28px;
+    box-sizing: border-box;
+    padding-bottom: 30px;
+    .title_box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding-top: 14px;
+      .t {
+        font-weight: bold;
+        font-size: 16px;
+        color: #000000;
+      }
+      .t_right {
+        display: flex;
+        align-items: center;
+        .storage {
+          font-size: 14px;
+          color: #333333;
+          margin-right: 9px;
+        }
+        .all_down {
+          border-color: #055cf9;
+          span {
+            color: #055cf9;
+          }
+        }
+      }
+    }
+    /*任务列表*/
+    .table_box {
+      width: 100;
+      .table_row {
+        display: flex;
+        height: 40px;
+        border-bottom: 1px solid #e5e5e5;
+        align-items: center;
+        font-size: 14px;
+        color: #333;
+        .table_li {
+          box-sizing: border-box;
+          padding: 0 6px;
+          display: flex;
+          align-items: center;
+          img {
+            margin-right: 12px;
+          }
+        }
+        .table_li:first-child {
+          width: 420px;
+        }
+        .table_li:nth-child(2) {
+          width: 370px;
+        }
+        .table_li:nth-child(3) {
+          width: 90px;
+        }
+        .table_li:nth-child(4) {
+          width: 180px;
+        }
+      }
+      .table_top {
+        color: #999999;
+      }
+      .status {
+        img {
+          margin-left: 5px;
+          margin-right: 7px;
+        }
+        .failed {
+          color: #ff4940;
+        }
+        .done {
+          color: #20b759;
+        }
+        .process {
+          color: #ff9c00;
+        }
+      }
+      .icon_down {
+        margin-right: 21px;
+        cursor: pointer;
+        span {
+          color: #055cf9;
+        }
+        &.actived {
+          span {
+            color: #9bbefd;
+          }
+        }
+      }
+    }
+  }
+  .translate-btn {
+    line-height: 36px;
+    width: 180px;
+    color: white;
+    border: none;
+    background: #055cf9;
+    border-radius: 4px;
+    cursor: pointer;
+  }
 }
 </style>
 <style type="text/css" lang="scss">
@@ -941,177 +1085,6 @@ const languageOptions = computed(() => {
   display: none;
 }
 
-.translated-container {
-  border: 1px solid gray;
-  border: 1px solid #e0e4f7;
-  background-color: #ffffff;
-  border-radius: 12px;
-  min-width: 300px;
-  height: 380px;
-  margin-bottom: 16px;
-  padding: 20px;
-  overflow: auto;
-}
-.form-container {
-  height: 500px;
-  overflow: auto;
-  margin-top: 20px;
-  margin-bottom: 20px;
-}
-
-.download-container {
-  height: 368px;
-  text-align: center;
-  display: block;
-  overflow: auto;
-}
-.form-container form {
-  width: calc(100% - 48px);
-  height: 100%;
-}
-.item-container {
-  line-height: 50px;
-  display: flex;
-  flex-direction: row;
-  margin-bottom: 16px;
-}
-.item-container .required {
-  color: #ff0000;
-  font-size: 14px;
-}
-.item-container > span {
-  flex: atuo 0;
-  font-size: 14px;
-  font-family: "PingFang SC";
-  font-weight: 400;
-  color: #111111;
-  line-height: 38px;
-}
-/*.item-container select,.item-container input, .item-container textarea{
-        flex: auto 1;
-        border: 1px solid #DCDEE2;
-    }*/
-#file_upload {
-  display: none;
-}
-.translated img,
-.translate-loading img {
-  width: 80px;
-  height: 80px;
-}
-.translate-btn {
-  line-height: 36px;
-  width: 180px;
-  color: white;
-  border: none;
-  background: #055cf9;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.wait-upload .upload_tip {
-  margin-top: 36px;
-  margin-bottom: 10px;
-  color: #333333;
-  font-size: 16px;
-  font-weight: 400;
-}
-.wait-upload span {
-  color: #666666;
-  font-size: 14px;
-  font-weight: 400;
-}
-.upload-success {
-  font-family: "PingFang SC";
-  font-weight: bold;
-  font-size: 16px;
-  color: #333333;
-}
-.upload-filename {
-  font-family: "PingFang SC";
-  font-weight: 400;
-  font-size: 14px;
-  color: #055cf9;
-  margin-bottom: 13px;
-  margin-top: 23px;
-}
-.re-upload {
-  font-family: "PingFang SC";
-  font-weight: 400;
-  font-size: 12px;
-  color: #666666;
-}
-.download-button {
-  line-height: 36px;
-  width: 120px;
-  display: inline-block;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  background: #055cf9;
-}
-
-.translate_btn {
-  line-height: 36px;
-  width: 180px;
-  color: white;
-  border: none;
-  background: #055cf9;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 20px;
-}
-/*form input,form select,form textarea{
-        line-height: 32px;
-        width: 220px;
-        height: 32px;
-        padding: 2px;
-        font-size: 14.6px;
-        padding-left: 16px;
-    }
-    form select{
-        height: 38px;
-    }
-    form select:after{
-        padding-right: 10px;
-    }
-    textarea.system{
-        height: 120px;
-    }*/
-.item-container > span {
-  display: inline-block;
-  width: 80px;
-}
-.dropzone form {
-  width: 100%;
-}
-.model-custom {
-  display: none;
-}
-.process-bar {
-  width: 240px;
-  height: 8px;
-  background: #efefef;
-  border-radius: 4px;
-  position: relative;
-}
-.process-bar > span {
-  height: 8px;
-  background: #055cf9;
-  border-radius: 4px;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.process-tip {
-  font-size: 16px;
-  font-family: "PingFang SC";
-  font-weight: 400;
-  color: #055cf9;
-}
-.completed-text {
-  margin-top: 8px;
-  margin-bottom: 20px;
-}
 .check-container {
   position: absolute;
   left: 12px;
@@ -1122,102 +1095,15 @@ const languageOptions = computed(() => {
   align-items: center;
   height: calc(100% - 20px);
 }
-
-.check-loading {
-  display: none;
-  width: 21px;
-  height: 21px;
-}
-.api-key-container {
-  position: relative;
-}
-.api-key-container img {
-  position: absolute;
-  right: 8px;
-  width: 16px;
-  height: 12px;
-  margin-top: 12px;
-}
-.translate-container {
-  text-align: center;
-}
-.translate-card {
-  margin-bottom: 10px;
-  margin-left: 15px;
-  margin-right: 15px;
-}
-.translated-header {
-  display: flex;
-  align-items: center;
-}
-.translated-header h2 {
-  margin-right: 30px;
-  display: inline-block;
-  font-family: "PingFang SC";
-  font-weight: bold;
-  font-size: 16px;
-  color: #000000;
-}
-.translated-header .storage {
-  margin-right: 30px;
-}
 .translated-process {
-  width: 300px;
+  width: 270px;
   display: inline-block;
 }
-.card-header {
-  font-family: "PingFang SC";
-  font-weight: 400;
-  font-size: 14px;
-  color: #333333;
-  text-align: left;
-  margin-bottom: 10px;
-  margin-top: 25px;
-}
-.progress {
-  border-radius: 4px;
-}
-.percentage {
-  font-weight: 400;
-  font-size: 14px;
-  margin-left: 18px;
-  margin-right: 20px;
-  color: #333333;
-}
-.download-link-disable {
-  font-weight: 400;
-  font-size: 14px;
-  color: #bbbbbb;
-}
-.download-link {
-  font-weight: 400;
-  font-size: 14px;
-  color: #055cf9;
-}
-.download-container .el-progress-bar__inner,
-.translate-container .el-progress-bar__inner {
-  background-color: #055cf9 !important;
-}
-.type-cascader {
-  width: 100%;
-}
+
+/*手机端处理*/
 @media screen and (max-width: 800px) {
   .container .blank {
     width: 0%;
-  }
-  .upload-container,
-  .form-container {
-    margin-right: 0px;
-    overflow: visible;
-  }
-  .form-container {
-    height: auto;
-    padding-top: 30px;
-    padding-bottom: 30px;
-    margin-bottom: 77px;
-  }
-  .form-container .form-btns {
-    display: none;
   }
   .page-title {
     font-size: 18px;

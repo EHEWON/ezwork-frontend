@@ -65,7 +65,7 @@
     </el-dialog>
 
     <!-- 退出弹窗 -->
-    <el-dialog v-model="logoutVisible" modal-class="custom_dialog" he center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
+    <el-dialog v-model="logoutVisible" modal-class="custom_dialog" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <div class="dialog-title">退出登录</div>
         <div class="dialog-content">你确定要退出登录</div>
@@ -75,19 +75,19 @@
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
+    <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <img src="@assets/reset_success.png" style="width:128px;" />
-        <div class="dialog-content">重置密码成功！</div>
+        <div class="dialog-content" style="margin-top:10px;">重置密码成功！</div>
         <div class="dialog-btns">
           <el-button class="dialog-btn send-confirm" color="#055CF9" @click="resetSuccessVisible=false">确认</el-button>
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 10px;">
+    <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <img src="@assets/reset_success.png" style="width:128px;" />
-        <div class="dialog-content">您已注册成功！</div>
+        <div class="dialog-content" style="margin-top:10px;">您已注册成功！</div>
         <div class="dialog-btns">
           <el-button class="dialog-btn send-confirm" color="#055CF9" @click="registerSuccessVisible=false">确认</el-button>
         </div>
@@ -219,6 +219,7 @@ function changeSuccess() {
     margin-right: 20px;
     font-size: 14px;
     color: #000000;
+    cursor: pointer;
     img {
       margin-right: 8px;
     }

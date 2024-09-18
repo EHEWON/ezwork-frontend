@@ -1,6 +1,6 @@
 <template>
     <layout :auth-dialog="authDialog" @close-dialog="closeDialog" @open-set="openSet">
-        <trans @should-auth="shouldAuth" :setShow="setShow" @set-hide="hideSet"></trans>
+        <trans @should-auth="shouldAuth" :setShow="setShow" @set-hide="hideSet" @open-set="openSet"></trans>
     </layout>
 </template>
 
@@ -18,6 +18,7 @@
     }
 
     function openSet(){
+      console.log(2222222)
       setShow.value = true;
     }
 
