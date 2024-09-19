@@ -28,8 +28,8 @@
           <div class="t_right">
             <span class="storage">存储空间({{storageTotal}}M)</span>
             <el-progress class="translated-process" :percentage="storagePercentage" color='#055CF9'/>
-            <el-button class="all_down">全部下载</el-button>
-            <el-button @click="delAllTransFile">全部删除</el-button>
+            <!--<el-button class="all_down" v-if="translatesData.length > 0">全部下载</el-button>-->
+            <el-button @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
           </div>
         </div>
         <div class="table_box">
@@ -98,6 +98,9 @@
                 <Close @click="delTransFile(item.id)" />
               </el-icon>
             </div>
+          </div>
+          <div v-if="no_data" class="table_row no_data" style="border:none;padding-top:15px;justify-content: center;">
+            暂无数据
           </div>
         </div>
       </div>
@@ -207,6 +210,7 @@ const checking = ref(false)
 const translateDialog = ref(false)
 const langMultiSelected = ref(true)
 const formSetShow = ref(false);
+const no_data = ref(true)
 
 const accepts = ".docx,.xlsx,.pptx,.pdf"
 const fileListShow = ref(false)
@@ -529,6 +533,9 @@ function translate(transform, source) {
   //清空上传文件列表
   uploadRef.value.clearFiles();
   fileListShow.value = false;
+  if(translatesData.value.length > 0){
+    no_data.value = false;
+  }
 
   if (source == "mobile") {
     translateDialog.value = true
@@ -711,6 +718,10 @@ function getTranslatesData(page, uuid) {
       
       translatesData.value = data.data.data;
       translatesTotal.value = data.data.total;
+
+      if(translatesData.value.length > 0){
+        no_data.value = false;
+      }
     }
   })
 }
