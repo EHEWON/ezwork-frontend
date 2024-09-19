@@ -46,7 +46,7 @@
               <img v-else-if="res.file_type == 'docx'" src="@assets/DOC.png" alt="">
               <img v-else-if="res.file_type == 'xlsx'" src="@assets/Excel.png" alt="">
               <img v-else src="@assets/PDF.png" alt="">
-              {{res.file_name}}
+              <span class="file_name">{{res.file_name}}</span>
             </div>
             <div class="table_li status">
               <el-progress class="translated-process" :percentage="res['percentage']"  color='#055CF9'>
@@ -72,7 +72,7 @@
               <img v-else-if="item.file_type == 'docx'" src="@assets/DOC.png" alt="">
               <img v-else-if="item.file_type == 'xlsx'" src="@assets/Excel.png" alt="">
               <img v-else src="@assets/PDF.png" alt="">
-              {{item.origin_filename}}
+              <span class="file_name">{{item.origin_filename}}</span>
             </div>
             <div class="table_li status">
               <el-progress class="translated-process" :percentage="item.process"  color='#055CF9'/>
@@ -175,14 +175,6 @@
     <!-- pc 立即翻译按钮 -->
     <div class="fixed_bottom">
       <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
-    </div>
-
-    <!-- 手机端 立即翻译按钮 -->
-    <div class="static center form-btns hide">
-      <div class="check-container">
-        <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
-      </div>
-      <el-button type="primary" color="#055CF9" class="translate-btn" size="large" @click="translate(transform,'mobile')">立即翻译</el-button>
     </div>
   </div>
 </template>
@@ -784,11 +776,12 @@ const languageOptions = computed(() => {
 .page-center {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px;
+  padding-bottom: 90px;
 }
 .container {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
+  padding: 0 20px;
 }
 .upload-container {
   background: #ffffff;
@@ -983,6 +976,8 @@ const languageOptions = computed(() => {
       .t_right {
         display: flex;
         align-items: center;
+        flex: 1;
+        justify-content: flex-end;
         .storage {
           font-size: 14px;
           color: #333333;
@@ -1001,11 +996,12 @@ const languageOptions = computed(() => {
       width: 100;
       .table_row {
         display: flex;
-        height: 40px;
+        min-height: 40px;
         border-bottom: 1px solid #e5e5e5;
         align-items: center;
         font-size: 14px;
         color: #333;
+        padding: 5px 0;
         .table_li {
           box-sizing: border-box;
           padding: 0 6px;
@@ -1013,6 +1009,13 @@ const languageOptions = computed(() => {
           align-items: center;
           img {
             margin-right: 12px;
+          }
+          .file_name{
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
         .table_li:first-child {
@@ -1023,9 +1026,13 @@ const languageOptions = computed(() => {
         }
         .table_li:nth-child(3) {
           width: 90px;
+          white-space: nowrap;
         }
         .table_li:nth-child(4) {
           width: 180px;
+        }
+        .table_li:nth-child(5) {
+          width: 100px;
         }
       }
       .table_top {
@@ -1035,6 +1042,9 @@ const languageOptions = computed(() => {
         img {
           margin-left: 5px;
           margin-right: 7px;
+        }
+        span{
+          white-space: nowrap;
         }
         .failed {
           color: #ff4940;
@@ -1092,48 +1102,13 @@ const languageOptions = computed(() => {
 }
 </style>
 <style type="text/css">
-.hide {
-  display: none;
-}
-
-.check-container {
-  position: absolute;
-  left: 12px;
-  top: 5px;
-  display: flex;
-  justify-content: center;
-  flex-direction: row;
-  align-items: center;
-  height: calc(100% - 20px);
-}
 .translated-process {
-  width: 270px;
   display: inline-block;
+  max-width: 270px;
+  width: 80%;
 }
-
 /*手机端处理*/
-@media screen and (max-width: 800px) {
-  .container .blank {
-    width: 0%;
-  }
-  .page-title {
-    font-size: 18px;
-  }
-  .static.form-btns {
-    display: inline-block;
-    display: inline-block;
-    position: fixed;
-    bottom: 0;
-    width: 100vw;
-    text-align: center;
-    background-color: #ffffff;
-    padding: 16px 0;
-  }
-  .static .translate_btn {
-    margin-bottom: 0px;
-  }
-  .right {
-    display: none;
-  }
+@media screen and (max-width: 768px) {
+
 }
 </style>

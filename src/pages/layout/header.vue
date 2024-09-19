@@ -8,7 +8,7 @@
       <div class="btn-box">
         <template v-if="store.token">
           <div class="flex-center">
-            <div class="btn_set" @click="funOpenSet"><img src="@/assets/icon_set.png" alt="">翻译设置</div>
+            <div class="btn_set" @click="funOpenSet"><img src="@/assets/icon_set.png" alt=""><span>翻译设置</span></div>
             <img class="icon_vip" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
             <el-dropdown placement="bottom-end" @command="user_action">
               <el-button>
@@ -193,7 +193,8 @@ function changeSuccess() {
   box-shadow: 0px 0px 12px 0px rgba(0, 22, 52, 0.05);
 }
 .head-box {
-  max-width: 1200px;
+  max-width: 1240px;
+  padding: 0 20px;
   margin: 0 auto;
   height: 60px;
   display: flex;
