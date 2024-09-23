@@ -362,7 +362,7 @@ function changeSuccess() {
   color: #111111;
 }
 .phone_show{
-  display: none;
+  display: none!important;
 }
 @media screen and (max-width: 767px) {
   .pc_show{

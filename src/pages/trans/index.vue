@@ -1065,6 +1065,7 @@ const languageOptions = computed(() => {
       }
       .icon_down {
         margin-right: 21px;
+        color: #9BBEFD;
         cursor: pointer;
         span {
           color: #055cf9;
