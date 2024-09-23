@@ -2,18 +2,27 @@
   <div class="page-header">
     <div class="head-box">
       <div class="logo">
-        <img src="@/assets/logo.png" alt="EZ-work">
+        <img src="@/assets/logo.png" class="logo_img" alt="EZ-work">
         <span>{{store.pTitle}}</span>
+        <img class="icon_vip phone_show" style="height:16px;margin-left:10px;" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
       </div>
       <div class="btn-box">
         <template v-if="store.token">
           <div class="flex-center">
-            <div class="btn_set" @click="funOpenSet"><img src="@/assets/icon_set.png" alt=""><span>翻译设置</span></div>
-            <img class="icon_vip" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
+            <div class="btn_set" @click="funOpenSet"><img src="@/assets/icon_set.png" alt=""><span class="pc_show">翻译设置</span></div>
+            <img class="icon_vip pc_show" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
             <el-dropdown placement="bottom-end" @command="user_action">
-              <el-button>
-                <div class="username" :title="store.username">{{store.username}}</div> <el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
+              <template #default>
+                <div>
+                  <el-button class="pc_show">
+                    <div class="username" :title="store.username">{{store.username}}</div> <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                  </el-button>
+                  <div class="phone_show icon_more">
+                    <el-icon><MoreFilled /></el-icon>
+                  </div>
+                </div>
+              </template>
+              
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="pwd">修改密码</el-dropdown-item>
@@ -24,13 +33,14 @@
           </div>
         </template>
         <template v-else>
-          <el-button @click="authVisible=!authVisible">登录/注册</el-button>
+          <el-button class="pc_show" @click="authVisible=!authVisible">登录/注册</el-button>
+          <el-icon class="phone_show icon_user" @click="authVisible=!authVisible"><User /></el-icon>
         </template>
       </div>
     </div>
 
     <!-- 登录注册弹窗 -->
-    <el-dialog v-model="authVisible" center width="410px" modal-class="custom_dialog login_dialog" :show-close="false" style="border-radius: 20px;">
+    <el-dialog v-model="authVisible" center width="90%" modal-class="custom_dialog login_dialog" :show-close="false" style="border-radius: 20px;">
       <template #header="{close,titleId,titleClass}">
         <el-menu :default-active="activeIndex" mode="horizontal" class="menu-center" @select="menuSelect" text-color="#8F8F91" active-text-color="#111111">
           <el-menu-item index="1" class="menu-title">登录</el-menu-item>
@@ -46,7 +56,7 @@
     </el-dialog>
 
     <!-- 重置密码弹窗 -->
-    <el-dialog v-model="forgetVisible" center width="410px" modal-class="custom_dialog login_dialog" :show-close="false" style="border-radius: 20px;">
+    <el-dialog v-model="forgetVisible" center width="90%" modal-class="custom_dialog login_dialog" :show-close="false" style="border-radius: 20px;">
       <template #header="{close,titleId,titleClass}">
         <h1 :class="titleClass" class="forget-title">
           <el-icon style="cursor: pointer;" @click="backToAuth">
@@ -60,22 +70,22 @@
     </el-dialog>
 
     <!-- 修改密码 -->
-    <el-dialog v-model="changeVisible" title="修改密码" modal-class="custom_dialog change_dialog" center width="410px" :show-close="false" style="border-radius: 20px;">
+    <el-dialog v-model="changeVisible" title="修改密码" modal-class="custom_dialog change_dialog" center width="90%" :show-close="false" style="border-radius: 20px;">
       <change @success="changeSuccess"></change>
     </el-dialog>
 
     <!-- 退出弹窗 -->
-    <el-dialog v-model="logoutVisible" modal-class="custom_dialog" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
+    <el-dialog v-model="logoutVisible" modal-class="custom_dialog" center :show-close="false" width="90%" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <div class="dialog-title">退出登录</div>
-        <div class="dialog-content">你确定要退出登录</div>
+        <div class="dialog-content">您确定要退出登录吗？</div>
         <div class="dialog-btns">
           <el-button class="dialog-btn cancel" @click="logoutVisible=false">取消</el-button>
           <el-button class="dialog-btn confirm" type="primary" color="#055CF9" @click="confirmLogout">确认</el-button>
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
+    <el-dialog v-model="resetSuccessVisible" title="" center :show-close="false" class="custom_2_dialog" width="90%" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <img src="@assets/reset_success.png" style="width:128px;" />
         <div class="dialog-content" style="margin-top:10px;">重置密码成功！</div>
@@ -84,7 +94,7 @@
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" width="410px" heigt="240px" style="border-radius: 20px;">
+    <el-dialog v-model="registerSuccessVisible" title="" center :show-close="false" class="custom_2_dialog" width="90%" heigt="240px" style="border-radius: 20px;">
       <div class="dialog-container">
         <img src="@assets/reset_success.png" style="width:128px;" />
         <div class="dialog-content" style="margin-top:10px;">您已注册成功！</div>
@@ -247,7 +257,13 @@ function changeSuccess() {
       color: #111;
     }
     .el-dialog {
+      max-width: 410px;
       padding: 20px;
+    }
+  }
+  .custom_2_dialog{
+    .el-dialog {
+      max-width: 410px;
     }
   }
   .change_dialog {
@@ -326,7 +342,7 @@ function changeSuccess() {
   }
 }
 </style>
-<style type="text/css">
+<style type="text/css" lang="scss">
 .flex-center {
   display: flex;
   align-items: center;
@@ -345,10 +361,31 @@ function changeSuccess() {
 .menu-title.active {
   color: #111111;
 }
-
-@media screen and (max-width: 800px) {
-  .page-header-left {
-    display: none;
+.phone_show{
+  display: none;
+}
+@media screen and (max-width: 767px) {
+  .pc_show{
+    display: none!important;
+  }
+  .phone_show{
+    display: inline-block!important;
+  }
+  .icon_user{
+    font-size: 30px!important;
+  }
+  .logo span{
+    font-size: 14px!important;
+    margin-left: 10px!important;
+  }
+  .icon_more{
+    font-size: 20px;
+  }
+  .btn_set{
+    margin-right: 6px!important;
+  }
+  .logo_img{
+    height: 30px!important;
   }
 }
 </style>

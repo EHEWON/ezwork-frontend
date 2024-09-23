@@ -3,7 +3,7 @@
     <div class="container">
       <div class="upload-container">
         <el-upload ref="uploadRef" class="dropzone" drag multiple :action="upload_url" :accept="accepts" auto-upload :limit="5" :on-success="uploadSuccess" :on-error="uploadError" :headers="{token:store.token}" :before-upload="beforeUpload" :before-remove="delUploadFile" :on-change="(file,fileList) => flhandleFileListChange(file,fileList)">
-          <div class="left_box">
+          <div class="left_box pc_show">
             <div class="icon_box" v-if="!fileListShow">
               <img src="@/assets/icon_a.png" />
               <img src="@/assets/icon_w.png" />
@@ -12,11 +12,12 @@
             </div>
           </div>
           <div class="right_box">
-            <div class="title">拖入/点击按钮选择添加文档</div>
+            <div class="title pc_show">拖入/点击按钮选择添加文档</div>
             <button class="upload_btn" type="button">
               <img :src="uploadPng" />
               <span>上传文档</span>
             </button>
+            <div class="title phone_show">点击按钮选择添加文档</div>
             <div class="tips">支持格式{{accpet_tip}}，文件≤10MB</div>
           </div>
         </el-upload>
@@ -24,23 +25,23 @@
 
       <div class="list_box">
         <div class="title_box">
-          <div class="t">翻译任务列表</div>
+          <div class="t">翻译任务列表 <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button></div>
           <div class="t_right">
             <span class="storage">存储空间({{storageTotal}}M)</span>
             <el-progress class="translated-process" :percentage="storagePercentage" color='#055CF9'/>
             <!--<el-button class="all_down" v-if="translatesData.length > 0">全部下载</el-button>-->
-            <el-button @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
+            <el-button class="pc_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
           </div>
         </div>
         <div class="table_box">
-          <div class="table_row table_top">
+          <div class="table_row table_top pc_show">
             <div class="table_li">文档名称</div>
             <div class="table_li">任务状态</div>
             <div class="table_li">用时</div>
             <div class="table_li">完成时间</div>
             <div class="table_li">操作</div>
           </div>
-          <div class="table_row" v-for="(res,index) in result" :key="index">
+          <div class="table_row phone_row" v-for="(res,index) in result" :key="index">
             <div class="table_li">
               <img v-if="res.file_type == 'pptx'" src="@assets/PPT.png" alt="">
               <img v-else-if="res.file_type == 'docx'" src="@assets/DOC.png" alt="">
@@ -57,16 +58,16 @@
               <img src="@assets/waring.png" alt="">
               <span class="process">翻译中</span>
             </div>
-            <div class="table_li">--</div>
-            <div class="table_li">--</div>
-            <div class="table_li">
+            <div class="table_li pc_show">--</div>
+            <div class="table_li pc_show">--</div>
+            <div class="table_li pc_show">
               <el-icon class="icon_down">
                 <Download />
               </el-icon>
             </div>
           </div>
 
-          <div class="table_row" v-for="(item,index) in translatesData" :key="index">
+          <div class="table_row phone_row" v-for="(item,index) in translatesData" :key="index">
             <div class="table_li">
               <img v-if="item.file_type == 'pptx'" src="@assets/PPT.png" alt="">
               <img v-else-if="item.file_type == 'docx'" src="@assets/DOC.png" alt="">
@@ -74,15 +75,15 @@
               <img v-else src="@assets/PDF.png" alt="">
               <span class="file_name">{{item.origin_filename}}</span>
             </div>
-            <div class="table_li status">
+            <div :class="item.status=='done'?'pc_show table_li status':'table_li status'">
               <el-progress class="translated-process" :percentage="item.process"  color='#055CF9'/>
               <img v-if="item.status == 'done'" src="@assets/success.png" alt="">
               <img v-if="item.status == 'process'" src="@assets/waring.png" alt="">
               <img v-if="item.status == 'failed'" src="@assets/error.png" alt="">
               <span :class="item.status">{{item.status_name}}</span>
             </div>
-            <div class="table_li">{{item.spend_time?item.spend_time:'--'}}</div>
-            <div class="table_li">{{item.end_at?item.end_at:'--'}}</div>
+            <div :class="item.status=='done'?'table_li':'table_li pc_show'"><span class="phone_show">用时:</span>{{item.spend_time?item.spend_time:'--'}}</div>
+            <div :class="item.status=='done'?'table_li':'table_li pc_show'"><span class="phone_show">完成时间:</span>{{item.end_at?item.end_at:'--'}}</div>
             <div class="table_li">
               <el-icon class="icon_down active" v-if="item.status=='done'">
                 <el-link :href="API_URL+item.target_filepath" target="_blank">
@@ -90,16 +91,14 @@
                 </el-link>
               </el-icon>
               <el-icon v-else class="icon_down">
-                <el-link :href="API_URL+item.target_filepath" target="_blank">
-                  <Download />
-                </el-link>
+                <Download />
               </el-icon>
               <el-icon style="cursor: pointer;">
                 <Close @click="delTransFile(item.id)" />
               </el-icon>
             </div>
           </div>
-          <div v-if="no_data" class="table_row no_data" style="border:none;padding-top:15px;justify-content: center;">
+          <div v-if="no_data" class="table_row no_data" style="border:none;padding-top:15px;justify-content: center;color:#C4C4C4;">
             暂无数据
           </div>
         </div>
@@ -107,7 +106,7 @@
     </div>
 
     <!-- 新版翻译设置pc -->
-    <el-dialog v-model="formSetShow" title="翻译设置" width="600px" modal-class="custom_dialog" @close="formCancel">
+    <el-dialog v-model="formSetShow" title="翻译设置" width="90%" modal-class="custom_dialog" @close="formCancel">
       <el-form ref="transformRef" :model="formSet" label-width="100px" :rules="rules">
         <el-form-item label="服务商" required prop="server" width="100%">
           <el-select v-model="formSet.server" placeholder="请选择服务商" disabled @change="saveValue">
@@ -147,7 +146,7 @@
           </div>
         </el-form-item>
         <el-form-item label="译文形式" required prop="type" width="100%">
-          <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="formSet.type" :options="types" clearable :props="{ expandTrigger: 'hover' }">
+          <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="formSet.type" :options="types" clearable :props="{ expandTrigger: 'hover' }" style="width:100%;">
           </el-cascader>
         </el-form-item>
         <!-- <el-form-item label="译文形式" required prop="type">
@@ -162,6 +161,8 @@
         <el-form-item label="线程数" required prop="threads" width="100%">
           <el-input-number style="width:100%" :min="10" :max="40" v-model="formSet.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
         </el-form-item>
+      </el-form>
+      <template #footer>
         <div class="btn_box">
           <div class="btn_check">
             <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
@@ -169,7 +170,7 @@
           <el-button @click="formCancel">取消</el-button>
           <el-button type="primary" color="#055CF9" @click="formConfim(transformRef)">确认</el-button>
         </div>
-      </el-form>
+      </template>
     </el-dialog>
 
     <!-- pc 立即翻译按钮 -->
@@ -444,7 +445,7 @@ function flhandleFileListChange(file, fileList) {
 
 function check() {
   checking.value = true
-  check_text.value = "检查中..."
+  check_text.value = "检查中"
   checkOpenAI(form.value).then(data => {
     checking.value = false
     if (data.code == 0) {
@@ -497,6 +498,7 @@ function formConfim(transformRef) {
       localStorage.setItem("type", JSON.stringify(form.value.type))
       localStorage.setItem("prompt", form.value.prompt)
       localStorage.setItem("threads", form.value.threads)
+      emit('set-hide')
     }
   })
 }
@@ -800,6 +802,10 @@ const languageOptions = computed(() => {
       border-radius: 12px;
       padding-left: 0;
       padding-right: 0;
+      &:hover{
+        border-color: #3F66FF;
+        background: #F8F9FE;
+      }
     }
     .el-upload-list {
       position: absolute;
@@ -906,6 +912,7 @@ const languageOptions = computed(() => {
 
   .custom_dialog {
     .el-dialog {
+      max-width: 600px;
       padding: 20px 30px 20px 30px;
     }
     .el-dialog__title {
@@ -1101,14 +1108,114 @@ const languageOptions = computed(() => {
   flex-shrink: 0; /* 防止符号被压缩 */
 }
 </style>
-<style type="text/css">
+<style type="text/css" lang="scss">
 .translated-process {
   display: inline-block;
   max-width: 270px;
   width: 80%;
 }
 /*手机端处理*/
-@media screen and (max-width: 768px) {
-
+@media screen and (max-width: 767px) {
+  .custom_dialog {
+    .el-dialog{
+      padding: 20px!important;
+    }
+    .el-dialog__body {
+      padding: 0!important;
+      height: 300px;
+      overflow-y: auto;
+      .el-form-item{
+        display: block!important;
+        margin-bottom: 10px;
+      }
+    }
+  }
+  .upload-container{
+    padding: 20px!important;
+  }
+  .list_box{
+    padding: 0 20px!important;
+    .title_box{
+      flex-direction: column!important;
+      height: auto!important;
+      align-items: flex-start!important;
+      .t{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+      .t_right{
+        width: 100%;
+        .storage{
+          white-space: nowrap;
+        }
+      }
+    }
+    .table_box{
+      padding-top: 10px;
+      .table_row:last-child{
+        border: none;
+      }
+    }
+    .phone_row{
+      display: inline-block!important;
+      width: 100%;
+      overflow: hidden;
+      padding-top: 10px!important;
+      .table_li{
+        margin-bottom: 10px;
+      }
+      .table_li:first-child{
+        width: 100%!important;
+      }
+      .status{
+         width: 100%!important;
+      }
+      .table_li:nth-child(3){
+        display: inline-block!important;
+        width: auto!important;
+        font-size: 12px!important;
+        color: #969FA9;
+        &.pc_show{
+          display: none!important;;
+        }
+      }
+      .table_li:nth-child(4){
+        display: inline-block!important;
+        width: auto!important;
+        font-size: 12px!important;
+        color: #969FA9;
+        &.pc_show{
+          display: none!important;;
+        }
+      }
+    }
+  }
+  .dropzone{
+    .el-upload-dragger{
+      padding: 0!important;
+    }
+    .right_box{
+      width: 100%!important;
+      height: auto!important;
+      .tips{
+        margin-top: 10px;
+        margin-bottom: 20px;
+      }
+    }
+     .el-upload-list{
+      position: relative!important;
+      width: 100%!important;
+      left: unset!important;
+      transform:none!important;
+      padding: 0!important;
+      margin: 0;
+      .el-upload-list__item{
+        margin-top: 18px !important;
+        margin-bottom: 0!important;
+      }
+     }
+  }
 }
 </style>
