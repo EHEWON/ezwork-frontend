@@ -760,11 +760,7 @@ function delAllTransFile() {
 
 //下载全部
 function downAllTransFile(){
-  downAllTranslate().then((data) => {
-    if (data.code == 0) {
-      console.log(data);
-    }
-  })
+  window.open(API_URL+'/api/translate/download/all?token='+store.token)
 }
 
 store.setTitle("EZ-work AI文档翻译")
