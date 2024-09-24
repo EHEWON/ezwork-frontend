@@ -25,11 +25,17 @@
 
       <div class="list_box">
         <div class="title_box">
-          <div class="t">翻译任务列表 <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button></div>
+          <div class="t">
+            翻译任务列表
+            <div class="t_right">
+              <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="translatesData.length > 0">全部下载</el-button>
+              <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
+            </div>
+          </div>
           <div class="t_right">
             <span class="storage">存储空间({{storageTotal}}M)</span>
             <el-progress class="translated-process" :percentage="storagePercentage" color='#055CF9'/>
-            <!--<el-button class="all_down" v-if="translatesData.length > 0">全部下载</el-button>-->
+            <el-button class="pc_show all_down"  @click="downAllTransFile" v-if="translatesData.length > 0">全部下载</el-button>
             <el-button class="pc_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
           </div>
         </div>
@@ -55,7 +61,7 @@
                   <span class="percentage">{{percentage}}%</span>
                 </template>
               </el-progress>
-              <img src="@assets/waring.png" alt="">
+              <img src="@assets/waring.gif" alt="">
               <span class="process">翻译中</span>
             </div>
             <div class="table_li pc_show">--</div>
@@ -79,7 +85,7 @@
               <el-progress class="translated-process" :percentage="item.process"  color='#055CF9'/>
               <img v-if="item.status == 'done'" src="@assets/success.png" alt="">
               <img v-if="item.status == 'process'" src="@assets/waring.png" alt="">
-              <img v-if="item.status == 'failed'" src="@assets/error.png" alt="">
+              <img v-if="item.status == 'failed'" src="@assets/waring.png" alt="">
               <span :class="item.status">{{item.status_name}}</span>
             </div>
             <div :class="item.status=='done'?'table_li':'table_li pc_show'"><span class="phone_show">用时:</span>{{item.spend_time?item.spend_time:'--'}}</div>
@@ -182,7 +188,7 @@
 <script setup>
 import { reactive, ref, computed, watch, inject, defineEmits, onMounted } from 'vue'
 const API_URL = import.meta.env.VITE_API_URL
-import { checkOpenAI, checkPdf, transalteFile, transalteProcess, delFile, translates, delTranslate, delAllTranslate, translateSetting } from '@/api/trans'
+import { checkOpenAI, checkPdf, transalteFile, transalteProcess, delFile, translates, delTranslate, delAllTranslate, translateSetting,downAllTranslate } from '@/api/trans'
 import { storage } from '@/api/account'
 import uploadedPng from '@assets/uploaded.png'
 import uploadPng from '@assets/upload.png'
@@ -396,14 +402,7 @@ watch(() => store.level, (n, o) => {
 })
 
 onMounted(() => {
-  getTranslatesData(1)
-  storage().then(data => {
-    if (data.code == 0) {
-      storageTotal.value = data.data.storage
-      storageUsed.value = data.data.used
-      storagePercentage.value = data.data.percentage
-    }
-  })
+  getTranslatesData(1);
   translateSetting().then(data => {
     if (data.code == 0) {
       let setting = data.data
@@ -688,6 +687,7 @@ function delUploadFile(file, files) {
   }
 }
 
+//获取翻译列表数据的方法
 function getTranslatesData(page, uuid) {
   //删除翻译中的任务
   if (uuid) {
@@ -709,13 +709,23 @@ function getTranslatesData(page, uuid) {
         }
         item.file_type = fileType_f;
       })
-      
       translatesData.value = data.data.data;
       translatesTotal.value = data.data.total;
-
       if(translatesData.value.length > 0){
         no_data.value = false;
       }
+    }
+  })
+  getStorage();
+}
+
+//获取存储空间等信息的方法
+function getStorage(){
+  storage().then(data => {
+    if (data.code == 0) {
+      storageTotal.value = data.data.storage
+      storageUsed.value = data.data.used
+      storagePercentage.value = data.data.percentage
     }
   })
 }
@@ -745,6 +755,15 @@ function delAllTransFile() {
         translatesData.value = []
       }
     })
+  })
+}
+
+//下载全部
+function downAllTransFile(){
+  downAllTranslate().then((data) => {
+    if (data.code == 0) {
+      console.log(data);
+    }
   })
 }
 
@@ -779,6 +798,21 @@ const languageOptions = computed(() => {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 90px;
+}
+// 滚动条样式
+.page-center::-webkit-scrollbar {
+  width: 0px;
+}
+.page-center::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  opacity: 0.2;
+  background: fade(#d8d8d8, 60%);
+}
+.page-center::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  background: fade(#d8d8d8, 30%);
 }
 .container {
   max-width: 1240px;
@@ -1052,6 +1086,7 @@ const languageOptions = computed(() => {
         }
         span{
           white-space: nowrap;
+          width: 68px;
         }
         .failed {
           color: #ff4940;
@@ -1123,7 +1158,7 @@ const languageOptions = computed(() => {
     }
     .el-dialog__body {
       padding: 0!important;
-      height: 300px;
+      max-height: 300px;
       overflow-y: auto;
       .el-form-item{
         display: block!important;

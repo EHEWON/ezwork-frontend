@@ -245,6 +245,9 @@ function changeSuccess() {
     line-height: 30px;
   }
   .el-dropdown {
+    .el-tooltip__trigger{
+      outline: none;
+    }
     .el-button {
       outline: none;
     }
