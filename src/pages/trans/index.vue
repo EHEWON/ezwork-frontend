@@ -33,7 +33,7 @@
             
             <div class="t_right">
               <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="editionInfo !== 'community' && translatesData.length > 0">全部下载</el-button>
-              <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
+              <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData && translatesData.length > 0">全部删除</el-button>
             </div>
           </div>
           <div class="t_right" v-if="editionInfo !== 'community'">
@@ -425,7 +425,10 @@ watch(() => store.version, (n, o) => {
  if(n == 'community'){
   getCount();
   //自动获取缓存的数据列表
-  translatesData.value = JSON.parse(localStorage.getItem('TranslatesList'))
+  let _data = localStorage.getItem('TranslatesList')
+  if(_data && _data.length > 0){
+    translatesData.value = _data;
+  }
  }
 })
 
