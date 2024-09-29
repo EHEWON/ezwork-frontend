@@ -6,7 +6,8 @@
         <span>{{store.pTitle}}</span>
         <img class="icon_vip phone_show" style="height:16px;margin-left:10px;" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
       </div>
-      <div class="btn-box">
+      <!-- 社区版 -->
+      <div class="btn-box" v-if="editionInfo == 'business'">
         <template v-if="store.token">
           <div class="flex-center">
             <div class="btn_set" @click="funOpenSet"><img src="@/assets/icon_set.png" alt=""><span class="pc_show">翻译设置</span></div>
@@ -36,6 +37,14 @@
           <el-button class="pc_show" @click="authVisible=!authVisible">登录/注册</el-button>
           <el-icon class="phone_show icon_user" @click="authVisible=!authVisible"><User /></el-icon>
         </template>
+      </div>
+      <!-- 演示版 -->
+      <div class="btn-box" v-if="editionInfo == 'community'">
+        <div class="flex-center">
+          <div class="btn_set" @click="funOpenSet"><img src="@/assets/set.png" alt=""><span class="pc_show">翻译设置</span></div>
+          <div class="btn_set" @click="windowOpen('https://github.com/EHEWON/ezwork-ai-doc-translation?tab=readme-ov-file')"><img src="@/assets/github.png" alt=""><span class="pc_show">Github</span></div>
+          <div class="btn_set" @click="windowOpen('https://support.qq.com/product/670074')"><img src="@/assets/question.png" alt=""><span class="pc_show">问题反馈</span></div>
+        </div>
       </div>
     </div>
 
@@ -111,7 +120,7 @@ import login from '@/components/login.vue'
 import register from '@/components/register.vue'
 import forget from '@/components/forget.vue'
 import change from '@/components/change.vue'
-import { authInfo } from '@/api/account'
+import { authInfo,getSetting } from '@/api/account'
 import { ref, provide, watch, defineProps, defineEmits, onMounted } from 'vue'
 const props = defineProps({
   title: String,
@@ -124,6 +133,7 @@ const forgetVisible = ref(false)
 const changeVisible = ref(false)
 const resetSuccessVisible = ref(false)
 const registerSuccessVisible = ref(false)
+const editionInfo = ref(false)
 const activeIndex = ref("1")
 
 watch(() => props.authDialog, (n, o) => {
@@ -137,10 +147,17 @@ watch(authVisible, (n, o) => {
 })
 
 onMounted(() => {
-  authInfo().then(data => {
-    store.setUsername(data.data.email)
-    store.setLevel(data.data.level)
+  getSetting().then(data =>{
+    editionInfo.value = data.data.version;
+    store.setVersion(editionInfo.value)
+    if(data.data.version == 'business'){
+      authInfo().then(data => {
+        store.setUsername(data.data.email)
+        store.setLevel(data.data.level)
+      })
+    }
   })
+  
 })
 
 //用户操作
@@ -161,6 +178,11 @@ function menuSelect(index) {
 //打开设置弹窗
 function funOpenSet() {
   emit('open-set-form')
+}
+
+//演示版入口
+function windowOpen(url){
+  window.open(url);
 }
 
 function forgetPwd() {
