@@ -41,9 +41,18 @@
       <!-- 演示版 -->
       <div class="btn-box" v-if="editionInfo == 'community'">
         <div class="flex-center">
-          <div class="btn_set" @click="funOpenSet"><img src="@/assets/set.png" alt=""><span class="pc_show">翻译设置</span></div>
-          <div class="btn_set" @click="windowOpen('https://github.com/EHEWON/ezwork-ai-doc-translation?tab=readme-ov-file')"><img src="@/assets/github.png" alt=""><span class="pc_show">Github</span></div>
-          <div class="btn_set" @click="windowOpen('https://support.qq.com/product/670074')"><img src="@/assets/question.png" alt=""><span class="pc_show">问题反馈</span></div>
+          <div class="btn_set" @click="funOpenSet">
+            <div class="icon_svg"><svg-icon icon-class="setting" /></div>
+            <span class="pc_show">翻译设置</span>
+          </div>
+          <div class="btn_set" @click="windowOpen('https://github.com/EHEWON/ezwork-ai-doc-translation?tab=readme-ov-file')">
+            <div class="icon_svg"><svg-icon icon-class="github" /></div>
+            <span class="pc_show">Github</span>
+          </div>
+          <div class="btn_set" @click="windowOpen('https://support.qq.com/product/670074')">
+            <div class="icon_svg"><svg-icon icon-class="question" /></div>
+            <span class="pc_show">问题反馈</span>
+          </div>
         </div>
       </div>
     </div>
@@ -122,6 +131,7 @@ import forget from '@/components/forget.vue'
 import change from '@/components/change.vue'
 import { authInfo,getSetting } from '@/api/account'
 import { ref, provide, watch, defineProps, defineEmits, onMounted } from 'vue'
+import SvgIcon from '@/components/SvgIcon/index.vue'
 const props = defineProps({
   title: String,
   authDialog: Boolean,
@@ -253,8 +263,16 @@ function changeSuccess() {
     font-size: 14px;
     color: #000000;
     cursor: pointer;
-    img {
+    .icon_svg {
       margin-right: 8px;
+      font-size: 16px;
+      color: #666;
+    }
+    &:hover{
+      color: #045CF9;
+      .icon_svg{
+        color: #045CF9;
+      }
     }
   }
   .icon_vip {
