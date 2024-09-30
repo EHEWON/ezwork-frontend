@@ -256,7 +256,7 @@ const uploadRef = ref(null)
 const form = ref({
   files: [],
   server: store.level == 'vip' ? 'member' : 'openai',
-  api_url: "https://newapi.erui.com",
+  api_url: "https://api.openai.com/",
   api_key: "",
   model: "",
   backup_model: "",
@@ -425,9 +425,10 @@ watch(() => store.version, (n, o) => {
  if(n == 'community'){
   getCount();
   //自动获取缓存的数据列表
-  let _data = localStorage.getItem('TranslatesList')
+  let _data = JSON.parse(localStorage.getItem('TranslatesList'));
   if(_data && _data.length > 0){
     translatesData.value = _data;
+    no_data.value = false;
   }
  }
 })
@@ -591,9 +592,6 @@ function translate(transform) {
   //清空上传文件列表
   uploadRef.value.clearFiles();
   fileListShow.value = false;
-  if(translatesData.value.length > 0){
-    no_data.value = false;
-  }
 
   let langs = []
   if (!Array.isArray(form.value.langs)) {
@@ -644,6 +642,8 @@ function translate(transform) {
       })
     })
   })
+  //隐藏暂无数据
+  no_data.value = false;
   //循环结束，删除
   form.value.files = [];
 }
@@ -830,31 +830,39 @@ function delTransFile(id,index) {
     if(editionInfo.value == 'community'){
       translatesData.value.splice(index, 1);
       localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
+      if(translatesData.value.length < 1){
+        no_data.value = true;
+      }
     }else{
       delTranslate(id).then((data) => {
         if (data.code == 0) {
-          translatesData.value = translatesData.value.filter(item => item.id != id)
+          translatesData.value = translatesData.value.filter(item => item.id != id);
+          if(translatesData.value.length < 1){
+            no_data.value = true;
+          }
         }
       })
     }
   })
 }
 
+//全部删除的方法
 function delAllTransFile() {
   ElMessageBox.confirm('是否确定要删除全部？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-
     //演示版执行
     if(editionInfo.value == 'community'){
       translatesData.value = [];
+      no_data.value = true;
       localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
     }else{
       delAllTranslate().then((data) => {
         if (data.code == 0) {
-          translatesData.value = []
+          translatesData.value = [];
+          no_data.value = true;
         }
       })
     }

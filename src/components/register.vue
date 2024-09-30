@@ -14,7 +14,7 @@
       <el-input v-model="user.password" type="password" show-password placeholder="输入密码" />
     </el-form-item>
     <el-form-item label="" required prop="password2">
-      <el-input v-model="user.password2" type="password" show-password placeholder="再次输入密码" />
+      <el-input v-model="user.password2" type="password" show-password placeholder="确认输入密码" />
     </el-form-item>
     <el-form-item label="" class="center">
       <el-button type="primary" size="large" color="#055CF9" @click="doRegister(form)" style="width:100%;">提交</el-button>
