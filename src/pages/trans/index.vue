@@ -1309,7 +1309,7 @@ const languageOptions = computed(() => {
       .t{
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: baseline;
         width: 100%;
       }
       .t_right{
@@ -1383,6 +1383,16 @@ const languageOptions = computed(() => {
         margin-bottom: 0!important;
       }
      }
+  }
+  .t_left{
+    display: inline-block!important;
+    .tips{
+      margin-top: 10px;
+      margin-left: 0!important;
+    }
+  }
+  .no_data{
+    padding-bottom: 20px!important;
   }
 }
 </style>
