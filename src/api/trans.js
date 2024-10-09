@@ -80,3 +80,13 @@ export function delAllTranslate(){
         method: 'delete'
     });
 }
+
+/**
+ * 下载所有翻译文件记录
+ */
+export function downAllTranslate(){
+  return request({
+      url: '/api/translate/download/all',
+      method: 'get'
+  });
+}

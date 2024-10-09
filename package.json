@@ -3,16 +3,14 @@
     "private": true,
     "version": "0.0.0",
     "type": "module",
-    "scripts":
-    {
+    "scripts": {
         "dev": "vite",
         "build": "vite build",
         "demo": "vite build --mode demo",
         "docker": "vite build --mode docker",
         "preview": "vite preview"
     },
-    "dependencies":
-    {
+    "dependencies": {
         "@element-plus/icons-vue": "^2.3.1",
         "axios": "^1.6.7",
         "element-plus": "^2.6.1",
@@ -20,9 +18,10 @@
         "qs": "^6.12.0",
         "vue": "^3.4.21"
     },
-    "devDependencies":
-    {
+    "devDependencies": {
         "@vitejs/plugin-vue": "^5.0.4",
+        "sass": "^1.78.0",
+        "sass-loader": "^16.0.1",
         "vite": "^5.1.6"
     }
 }
