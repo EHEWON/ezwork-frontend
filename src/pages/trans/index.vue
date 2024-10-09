@@ -110,6 +110,11 @@
           </div>
         </div>
       </div>
+
+      <!-- 备案信息 -->
+      <div class="filing">
+        ICP经营许可证编号：鲁B2-20230046 <span class="pc_show">| </span><br class="phone_show"/>鲁ICP备2022005350号
+      </div>
     </div>
 
     <!-- 新版翻译设置pc -->
@@ -1065,11 +1070,20 @@ const languageOptions = computed(() => {
       }
     }
   }
+  .filing{
+    width: 100%;
+    font-size: 12px;
+    color: #949DB0;
+    text-align: center;
+    padding: 20px 0;
+    box-sizing: border-box;
+    line-height: 20px;
+  }
 
   .custom_dialog {
     .el-dialog {
-      max-width: 600px;
-      padding: 20px 30px 20px 30px;
+      max-width: 800px;
+      padding: 30px 70px;
     }
     .el-dialog__title {
       color: #111111;
@@ -1389,10 +1403,25 @@ const languageOptions = computed(() => {
     .tips{
       margin-top: 10px;
       margin-left: 0!important;
+      font-size: 12px!important;
     }
   }
   .no_data{
     padding-bottom: 20px!important;
+  }
+
+  /*调整间距、字体大小*/
+  .upload_btn span{
+    font-size: 14px!important;
+  }
+  .dropzone .right_box .title{
+    font-size: 16px!important;
+  }
+  .custom_dialog .btn_box{
+    text-align: right!important;;
+  }
+  .translate-btn{
+    width: 90%!important;
   }
 }
 </style>
