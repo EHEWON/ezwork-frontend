@@ -113,7 +113,7 @@
 
       <!-- 备案信息 -->
       <div class="filing">
-        ICP经营许可证编号：鲁B2-20230046 <span class="pc_show">| </span><br class="phone_show"/>鲁ICP备2022005350号
+        <a href="https://beian.miit.gov.cn" target="https://beian.miit.gov.cn">鲁ICP备17007495号-1 | 鲁B2-20240422</a>
       </div>
     </div>
 
@@ -735,9 +735,6 @@ function uploadSuccess(data) {
       })
     }
   } else {
-    //清空上传文件列表
-    uploadRef.value.clearFiles();
-    fileListShow.value = false;
     ElMessage({
       message: data.message,
       type: "error",
@@ -1076,11 +1073,14 @@ const languageOptions = computed(() => {
   .filing{
     width: 100%;
     font-size: 12px;
-    color: #949DB0;
     text-align: center;
     padding: 20px 0;
     box-sizing: border-box;
     line-height: 20px;
+    a{
+      color: #949DB0;
+      text-decoration: none;
+    }
   }
 
   .custom_dialog {
