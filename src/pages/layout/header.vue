@@ -263,6 +263,9 @@ function changeSuccess() {
     font-size: 14px;
     color: #000000;
     cursor: pointer;
+    img{
+      margin-right: 8px;
+    }
     .icon_svg {
       margin-right: 8px;
       font-size: 16px;
