@@ -735,6 +735,9 @@ function uploadSuccess(data) {
       })
     }
   } else {
+    //清空上传文件列表
+    uploadRef.value.clearFiles();
+    fileListShow.value = false;
     ElMessage({
       message: data.message,
       type: "error",
