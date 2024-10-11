@@ -4,6 +4,7 @@
       <div class="logo">
         <img src="@/assets/logo.png" class="logo_img" alt="EZ-work">
         <span>{{store.pTitle}}</span>
+        <a class="btn_return" href="https://www.ehemart.com/" v-if="editionInfo == 'community'"><<返回官网</a>
         <img class="icon_vip phone_show" style="height:16px;margin-left:10px;" v-if="store.level == 'vip'" src="@/assets/vip.png" alt="">
       </div>
       <!-- 社区版 -->
@@ -253,6 +254,13 @@ function changeSuccess() {
     font-size: 20px;
     font-weight: bold;
     margin-left: 20px;
+  }
+  .btn_return{
+    color: #045CF9;
+    margin-left: 10px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
   }
 }
 ::v-deep {
