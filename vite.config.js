@@ -5,6 +5,7 @@ import path from 'path'
 const resolve = (dir) => path.resolve(process.cwd(), dir)
 
 // https://vitejs.dev/config/
+
 export default defineConfig({
     base: './', // 确保这里没有设置为 '/'
     plugins: [vue(),createSvgIconsPlugin({
@@ -19,8 +20,10 @@ export default defineConfig({
           '@': path.resolve(__dirname, './src'),
           '@assets': path.resolve(__dirname, './src/assets'),
         },
-    },
-    build:{
-        assetsDir:"static"
+        base: './',
+        build:{
+            assetsDir:"static",
+            publicPath: mode === 'demo' ? '/ezwork-frontend/' : '/'
+        }
     }
 })
