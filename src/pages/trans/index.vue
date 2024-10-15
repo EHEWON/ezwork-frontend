@@ -30,7 +30,7 @@
               <span>翻译任务列表</span>
               <div class="tips" v-if="editionInfo == 'community'"><el-icon><SuccessFilled /></el-icon>已累计为用户成功翻译文件<span>{{transCount}}</span>份</div>
             </div>
-            
+
             <div class="t_right">
               <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="editionInfo !== 'community' && translatesData.length > 0">全部下载</el-button>
               <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData && translatesData.length > 0">全部删除</el-button>
@@ -221,7 +221,7 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf,.txt"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
@@ -579,7 +579,7 @@ function translate(transform) {
     emit('should-auth')
     return;
   }
-  
+
   if (form.value.files.length <= 0) {
     ElMessage({
       message: '请上传文件',
@@ -593,7 +593,7 @@ function translate(transform) {
     emit('open-set')
     return;
   }
-  
+
   //清空上传文件列表
   uploadRef.value.clearFiles();
   fileListShow.value = false;
@@ -683,7 +683,7 @@ function process(uuid) {
             getTranslatesDataLocal(uuid);
           }, 1000);
         }
-        
+
       } else {
         setTimeout(() => process(uuid), 1000)
       }
@@ -772,7 +772,7 @@ function getTranslatesDataLocal(uuid){
     const _obj = result.value[uuid];
     delete result.value[uuid];
     if(translatesData.value >= 19){
-      delete translatesData.value[translatesData.value.length-1]; 
+      delete translatesData.value[translatesData.value.length-1];
     }
     translatesData.value.unshift(_obj);
     localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
