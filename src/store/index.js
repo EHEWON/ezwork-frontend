@@ -5,6 +5,7 @@ export const store=reactive({
     token:localStorage.getItem("token") || '',
     level:localStorage.getItem("level") || 'common',
     username:localStorage.getItem("username") || '',
+    version:"",
     setTitle(title){
         this.pTitle=title
     },
@@ -19,5 +20,8 @@ export const store=reactive({
     setUsername(username){
         this.username=username
         localStorage.setItem("username",username)
+    },
+    setVersion(version){
+      this.version=version
     }
 })

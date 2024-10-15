@@ -7,7 +7,7 @@
       <el-input v-model="user.newpwd" type="password" show-password placeholder="设置新密码" />
     </el-form-item>
     <el-form-item label="" prop="newpwd_confirmation" required>
-      <el-input v-model="user.newpwd_confirmation" type="password" show-password placeholder="再次新密码" />
+      <el-input v-model="user.newpwd_confirmation" type="password" show-password placeholder="确认新密码" />
     </el-form-item>
     <el-form-item label="" class="center">
       <el-button type="primary" size="large" color="#055CF9" @click="doForget(form)" style="width:100%;">提交</el-button>
