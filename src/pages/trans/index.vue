@@ -535,20 +535,22 @@ function formReset(){
   let setting = translatesSettingData.value;
   if(setting.api_url){
     form.value.api_url = setting.api_url
+  }else{
+    form.value.api_url = 'setting.api_url'
   }
   if(setting.api_key){
     form.value.api_key = setting.api_key
+  }else{
+    form.value.api_key = '';
   }
-  models.value = setting.models
   form.value.model = setting.default_model
   form.value.backup_model = setting.default_backup
   form.value.prompt = setting.prompt
   form.value.threads = setting.threads
-  //回到未填写状态
-  form.value.lang = '';
-  form.value.uuid = '';
-  form.value.scanned = '';
-  form.value.origin_lang = '';
+
+  //清空以下数据
+  form.value.langs = [];
+  form.value.type = [];
 }
 
 //翻译设置确认
