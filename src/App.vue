@@ -18,7 +18,6 @@
     }
 
     function openSet(){
-      console.log(2222222)
       setShow.value = true;
     }
 

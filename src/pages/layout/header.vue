@@ -173,7 +173,6 @@ onMounted(() => {
 
 //用户操作
 function user_action(command) {
-  console.log(command)
   if (command == 'pwd') {
     changeVisible.value = true;
   }

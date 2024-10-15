@@ -663,13 +663,11 @@ function process(uuid) {
         result.value[uuid]['percentage'] = Math.trunc(parseFloat(data.data.process) * 100);
       }
       if (data.data.process == 1) {
-        console.log(JSON.stringify(data.data));
         translating[uuid] = false
         translated.value = true
         target_url.value = API_URL + data.data.url
         target_count.value = data.data.count
         target_time.value = data.data.time;
-        console.log(result.value[uuid]);
         result.value[uuid]['disabled'] = false
         //以下演示版存储
         result.value[uuid]['status'] = 'done';
