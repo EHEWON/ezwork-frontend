@@ -221,7 +221,7 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf,.txt"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
@@ -544,6 +544,11 @@ function formReset(){
   form.value.backup_model = setting.default_backup
   form.value.prompt = setting.prompt
   form.value.threads = setting.threads
+  //回到未填写状态
+  form.value.lang = '';
+  form.value.uuid = '';
+  form.value.scanned = '';
+  form.value.origin_lang = '';
 }
 
 //翻译设置确认
