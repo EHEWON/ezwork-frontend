@@ -22,7 +22,6 @@ export default defineConfig({
         base: './',
         build:{
             assetsDir:"static",
-            publicPath: mode === 'demo' ? '/ezwork-frontend/' : '/'
         }
     }
 })
