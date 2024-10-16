@@ -261,7 +261,7 @@ const uploadRef = ref(null)
 const form = ref({
   files: [],
   server: store.level == 'vip' ? 'member' : 'openai',
-  api_url: "https://api.openai.com/",
+  api_url: "https://api.openai.com",
   api_key: "",
   model: "",
   backup_model: "",
@@ -536,7 +536,7 @@ function formReset(){
   if(setting.api_url){
     form.value.api_url = setting.api_url
   }else{
-    form.value.api_url = 'https://api.openai.com/'
+    form.value.api_url = 'https://api.openai.com'
   }
   if(setting.api_key){
     form.value.api_key = setting.api_key
