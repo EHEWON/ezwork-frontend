@@ -221,7 +221,7 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf,.txt"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
@@ -535,15 +535,22 @@ function formReset(){
   let setting = translatesSettingData.value;
   if(setting.api_url){
     form.value.api_url = setting.api_url
+  }else{
+    form.value.api_url = 'https://api.openai.com/'
   }
   if(setting.api_key){
     form.value.api_key = setting.api_key
+  }else{
+    form.value.api_key = '';
   }
-  models.value = setting.models
   form.value.model = setting.default_model
   form.value.backup_model = setting.default_backup
   form.value.prompt = setting.prompt
   form.value.threads = setting.threads
+
+  //清空以下数据
+  form.value.langs = [];
+  form.value.type = [];
 }
 
 //翻译设置确认
