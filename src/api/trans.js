@@ -90,3 +90,16 @@ export function downAllTranslate(){
       method: 'get'
   });
 }
+
+
+/**
+ * 获取文件统计
+ */
+export function getFinishCount(){
+  return request({
+      url: '/api/translate/finish/count',
+      method: 'get'
+  });
+}
+
+

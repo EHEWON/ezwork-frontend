@@ -26,16 +26,23 @@
       <div class="list_box">
         <div class="title_box">
           <div class="t">
-            翻译任务列表
+            <div class="t_left">
+              <span>翻译任务列表</span>
+              <div class="tips" v-if="editionInfo == 'community'"><el-icon><SuccessFilled /></el-icon>已累计为用户成功翻译文件<span>{{transCount}}</span>份</div>
+            </div>
+            
             <div class="t_right">
-              <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="translatesData.length > 0">全部下载</el-button>
-              <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
+              <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="editionInfo !== 'community' && translatesData.length > 0">全部下载</el-button>
+              <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData && translatesData.length > 0">全部删除</el-button>
             </div>
           </div>
-          <div class="t_right">
+          <div class="t_right" v-if="editionInfo !== 'community'">
             <span class="storage">存储空间({{storageTotal}}M)</span>
             <el-progress class="translated-process" :percentage="storagePercentage" color='#055CF9'/>
             <el-button class="pc_show all_down"  @click="downAllTransFile" v-if="translatesData.length > 0">全部下载</el-button>
+            <el-button class="pc_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
+          </div>
+          <div class="t_right" v-else>
             <el-button class="pc_show" @click="delAllTransFile" v-if="translatesData.length > 0">全部删除</el-button>
           </div>
         </div>
@@ -67,9 +74,7 @@
             <div class="table_li pc_show">--</div>
             <div class="table_li pc_show">--</div>
             <div class="table_li pc_show">
-              <el-icon class="icon_down">
-                <Download />
-              </el-icon>
+              <img src="@assets/icon_no_down.png" alt="">
             </div>
           </div>
 
@@ -91,17 +96,13 @@
             <div :class="item.status=='done'?'table_li':'table_li pc_show'"><span class="phone_show">用时:</span>{{item.spend_time?item.spend_time:'--'}}</div>
             <div :class="item.status=='done'?'table_li':'table_li pc_show'"><span class="phone_show">完成时间:</span>{{item.end_at?item.end_at:'--'}}</div>
             <div class="table_li">
-              <el-icon class="icon_down active" v-if="item.status=='done'">
-                <el-link :href="API_URL+item.target_filepath" target="_blank">
-                  <Download />
+              <template v-if="item.status=='done'">
+                <el-link class="icon_down" :href="API_URL+item.target_filepath" target="_blank">
+                  <img src="@assets/icon_down.png" alt="">
                 </el-link>
-              </el-icon>
-              <el-icon v-else class="icon_down">
-                <Download />
-              </el-icon>
-              <el-icon style="cursor: pointer;">
-                <Close @click="delTransFile(item.id)" />
-              </el-icon>
+              </template>
+              <img v-else src="@assets/icon_no_down.png" alt="">
+              <img @click="delTransFile(item.id,index)" src="@assets/icon_close.png" alt="" style="cursor: pointer;">
             </div>
           </div>
           <div v-if="no_data" class="table_row no_data" style="border:none;padding-top:15px;justify-content: center;color:#C4C4C4;">
@@ -109,50 +110,55 @@
           </div>
         </div>
       </div>
+
+      <!-- 备案信息 -->
+      <div class="filing">
+        <a href="https://beian.miit.gov.cn" target="https://beian.miit.gov.cn">鲁ICP备17007495号-1 | 鲁B2-20240422</a>
+      </div>
     </div>
 
     <!-- 新版翻译设置pc -->
     <el-dialog v-model="formSetShow" title="翻译设置" width="90%" modal-class="custom_dialog" @close="formCancel">
-      <el-form ref="transformRef" :model="formSet" label-width="100px" :rules="rules">
+      <el-form ref="transformRef" :model="form" label-width="100px" :rules="rules">
         <el-form-item label="服务商" required prop="server" width="100%">
-          <el-select v-model="formSet.server" placeholder="请选择服务商" disabled @change="saveValue">
+          <el-select v-model="form.server" placeholder="请选择服务商" disabled @change="saveValue">
             <el-option value="openai" label="OpenAI"></el-option>
             <el-option value="member" label="EZ-work 会员"></el-option>
           </el-select>
         </el-form-item>
-        <template v-if="formSet.server=='openai'">
+        <template v-if="form.server=='openai'">
           <el-form-item label="接口地址" required prop="api_url" width="100%">
-            <el-input v-model="formSet.api_url" placeholder="请输入接口（base_url）地址"></el-input>
+            <el-input v-model="form.api_url" placeholder="请输入接口（base_url）地址"></el-input>
           </el-form-item>
           <el-form-item label="API Key" required prop="api_key" width="100%">
-            <el-input v-model="formSet.api_key" placeholder="请输入OpenAI的API KEY" show-password>></el-input>
+            <el-input v-model="form.api_key" placeholder="请输入OpenAI的API KEY" show-password>></el-input>
           </el-form-item>
         </template>
         <el-form-item label="模型" required prop="model" width="100%">
-          <el-select v-model="formSet.model" placeholder="请选择或自定义OpenAI模型" clearable filterable allow-create>
+          <el-select v-model="form.model" placeholder="请选择或自定义OpenAI模型" clearable filterable allow-create>
             <el-option v-for="model in models" :key="model" :name="model" :value="model"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="备用模型" prop="backup_model" width="100%">
-          <el-select v-model="formSet.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
+          <el-select v-model="form.backup_model" placeholder="备用模型在翻译模型不可用时自动切换并继续完成翻译。" clearable filterable allow-create>
             <el-option v-for="model in models" :disabled="form.model==model ? true :false" :key="model" :name="model" :value="model"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="翻译语言" required prop="langs" width="100%">
           <div class="language-selection">
-            <template v-if="formSet.scanned">
-              <el-select v-model="formSet.origin_lang" placeholder="请选择起始语言" class="lang-select">
+            <template v-if="form.scanned">
+              <el-select v-model="form.origin_lang" placeholder="请选择起始语言" class="lang-select">
                 <el-option v-for="lang in languageOptions" :key="lang.value" :label="lang.label" :value="lang.value"></el-option>
               </el-select>
               <div class="conversion-symbol">→</div>
             </template>
-            <el-select v-model="formSet.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit" class="lang-select">
+            <el-select v-model="form.langs" placeholder="请选择或自定义翻译语言" clearable filterable allow-create :multiple="langMultiSelected" :multiple-limit="langMultipleLimit" class="lang-select">
               <el-option v-for="lang in langs" :key="lang" :name="lang" :value="lang"></el-option>
             </el-select>
           </div>
         </el-form-item>
         <el-form-item label="译文形式" required prop="type" width="100%">
-          <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="formSet.type" :options="types" clearable :props="{ expandTrigger: 'hover' }" style="width:100%;">
+          <el-cascader class="type-cascader" placeholder="请选择译文形式" v-model="form.type" :options="types" clearable :props="{ expandTrigger: 'hover' }" style="width:100%;">
           </el-cascader>
         </el-form-item>
         <!-- <el-form-item label="译文形式" required prop="type">
@@ -162,18 +168,22 @@
             </el-select>
         </el-form-item> -->
         <el-form-item label="提示语" required prop="prompt" width="100%">
-          <el-input v-model="formSet.prompt" autosize type="textarea" :rows="3" resize="none" placeholder="请输入系统翻译提示词"></el-input>
+          <el-input v-model="form.prompt" autosize type="textarea" :rows="3" resize="none" placeholder="请输入系统翻译提示词"></el-input>
         </el-form-item>
         <el-form-item label="线程数" required prop="threads" width="100%">
-          <el-input-number style="width:100%" :min="10" :max="40" v-model="formSet.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
+          <el-input-number style="width:100%" :min="10" :max="40" v-model="form.threads" :controls="false" placeholder="注意：高线程≥10虽可以缩短翻译时长，但服务器负载较高，易引发异常，请谨慎使用！"></el-input-number>
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="btn_box">
           <div class="btn_check">
-            <el-button type="text" @click="check" :loading="checking">{{check_text}}</el-button>
+            <el-button class="custom_btn" type="primary" @click="check" :loading="checking">
+              <div class="flex_box"><img src="@/assets/warn.png" alt="">检查</div>
+            </el-button>
+            <el-tag v-if="check_text && check_text == 'success'" type="success">成功</el-tag>
+            <el-tag v-if="check_text && check_text == 'fail'" type="danger">失败</el-tag>
           </div>
-          <el-button @click="formCancel">取消</el-button>
+          <el-button @click="formReset">重置设置</el-button>
           <el-button type="primary" color="#055CF9" @click="formConfim(transformRef)">确认</el-button>
         </div>
       </template>
@@ -181,14 +191,14 @@
 
     <!-- pc 立即翻译按钮 -->
     <div class="fixed_bottom">
-      <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform,'pc')">立即翻译</el-button>
+      <el-button type="primary" size="large" color="#055CF9" class="translate-btn" @click="translate(transform)">立即翻译</el-button>
     </div>
   </div>
 </template>
 <script setup>
 import { reactive, ref, computed, watch, inject, defineEmits, onMounted } from 'vue'
 const API_URL = import.meta.env.VITE_API_URL
-import { checkOpenAI, checkPdf, transalteFile, transalteProcess, delFile, translates, delTranslate, delAllTranslate, translateSetting,downAllTranslate } from '@/api/trans'
+import { checkOpenAI, checkPdf, transalteFile, transalteProcess, delFile, translates, delTranslate, delAllTranslate, translateSetting,downAllTranslate,getFinishCount } from '@/api/trans'
 import { storage } from '@/api/account'
 import uploadedPng from '@assets/uploaded.png'
 import uploadPng from '@assets/upload.png'
@@ -211,17 +221,18 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
 const target_count = ref("")
 const target_time = ref("")
 const target_url = ref("")
-const check_text = ref("检查")
+const check_text = ref("")
 const upload_url = API_URL + "/api/upload"
 
 const translatesData = ref([]);
+const translatesSettingData = ref({})
 const translatesTotal = ref(0);
 const translatesLimit = ref(100);
 const langMultipleLimit = ref(5);
@@ -230,6 +241,11 @@ const storageUsed = ref(0);
 const storagePercentage = ref(0.0);
 
 const transformRef = ref(null)
+
+//版本状态信息
+const editionInfo = ref(false)
+//翻译累积数量
+const transCount = ref(0);
 
 const emit = defineEmits(['should-auth', 'set-hide','open-set'])
 
@@ -245,7 +261,7 @@ const uploadRef = ref(null)
 const form = ref({
   files: [],
   server: store.level == 'vip' ? 'member' : 'openai',
-  api_url: "https://api.openai.com",
+  api_url: "https://api.openai.com/",
   api_key: "",
   model: "",
   backup_model: "",
@@ -260,13 +276,7 @@ const form = ref({
 })
 
 
-const formSet = ref({})
-
 watch(() => props.setShow, (n, o) => {
-  if (n) {
-    //表单数据回显form数据
-    formSet.value = JSON.parse(JSON.stringify(form.value));
-  }
   formSetShow.value = n
 })
 
@@ -279,6 +289,12 @@ const rules = {
   files: [
     { required: true, message: '请上传文件', trigger: ['blur', 'change'] },
   ],
+  api_url:[{
+    required: true, message: '请输入接口地址', trigger: ['blur', 'change']
+  }],
+  api_key:[{
+    required: true, message: '请输入API Key', trigger: ['blur', 'change']
+  }],
   server: [
     { required: true, message: '请选择供应商', trigger: ['blur', 'change'] },
   ],
@@ -401,18 +417,61 @@ watch(() => store.level, (n, o) => {
   }
 })
 
-onMounted(() => {
+//监听用户自动登录
+watch(() => store.token, (n, o) => {
   getTranslatesData(1);
+  getTranslateSetting();
+})
+
+//监听用户自动登录
+watch(() => store.version, (n, o) => {
+ editionInfo.value = n;
+ //获取统计数量
+ if(n == 'community'){
+  getCount();
+  //自动获取缓存的数据列表
+  let _data = JSON.parse(localStorage.getItem('TranslatesList'));
+  if(_data && _data.length > 0){
+    translatesData.value = _data;
+    no_data.value = false;
+  }
+ }
+})
+
+onMounted(() => {
+  if(store.token){
+    getTranslatesData(1);
+  }
+  getTranslateSetting();
+})
+
+//获取翻译数量
+function getCount(){
+  getFinishCount().then(data =>{
+    if (data.code == 0) {
+      transCount.value = data.data.total;
+    }
+  })
+}
+
+
+//获取设置项信息
+function getTranslateSetting(){
   translateSetting().then(data => {
     if (data.code == 0) {
       let setting = data.data
-      form.value.api_url = setting.api_url
-      form.value.api_key = setting.api_key
+      if(setting.api_url){
+        form.value.api_url = setting.api_url
+      }
+      if(setting.api_key){
+        form.value.api_key = setting.api_key
+      }
       models.value = setting.models
       form.value.model = setting.default_model
       form.value.backup_model = setting.default_backup
       form.value.prompt = setting.prompt
       form.value.threads = setting.threads
+      translatesSettingData.value = setting;
     }
     if (localStorage.getItem("api_url")) {
       form.value.api_url = localStorage.getItem("api_url")
@@ -436,7 +495,7 @@ onMounted(() => {
       form.value.prompt = localStorage.getItem("prompt")
     }
   })
-})
+}
 
 function flhandleFileListChange(file, fileList) {
   fileListShow.value = fileList.length > 0 ? true : false;
@@ -444,13 +503,13 @@ function flhandleFileListChange(file, fileList) {
 
 function check() {
   checking.value = true
-  check_text.value = "检查中"
+  check_text.value = ""
   checkOpenAI(form.value).then(data => {
     checking.value = false
     if (data.code == 0) {
-      check_text.value = "成功"
+      check_text.value = "success"
     } else {
-      check_text.value = "失败"
+      check_text.value = "fail"
       ElMessage({
         message: data.message,
         type: "error",
@@ -459,7 +518,7 @@ function check() {
 
   }).catch(err => {
     checking.value = false
-    check_text.value = "失败"
+    check_text.value = "fail"
     ElMessage({
       message: "接口异常",
       type: "error",
@@ -469,16 +528,30 @@ function check() {
 
 //翻译设置取消
 function formCancel() {
-  formSet.value = {};
   emit('set-hide')
+}
+//翻译重置
+function formReset(){
+  let setting = translatesSettingData.value;
+  if(setting.api_url){
+    form.value.api_url = setting.api_url
+  }
+  if(setting.api_key){
+    form.value.api_key = setting.api_key
+  }
+  models.value = setting.models
+  form.value.model = setting.default_model
+  form.value.backup_model = setting.default_backup
+  form.value.prompt = setting.prompt
+  form.value.threads = setting.threads
 }
 
 //翻译设置确认
 function formConfim(transformRef) {
   transformRef.validate((valid, messages) => {
     if (valid) {
-      if (formSet.value.scanned) {
-        if (formSet.value.origin_lang == "") {
+      if (form.value.scanned) {
+        if (form.value.origin_lang == "") {
           ElMessage({
             message: "请选择pdf文件的原始语言",
             type: "error",
@@ -486,8 +559,6 @@ function formConfim(transformRef) {
           return
         }
       }
-
-      form.value = formSet.value;
       //确认
       localStorage.setItem("server", form.value.server)
       localStorage.setItem("api_url", form.value.api_url)
@@ -503,8 +574,8 @@ function formConfim(transformRef) {
 }
 
 //立即翻译方法
-function translate(transform, source) {
-  if (!store.token) {
+function translate(transform) {
+  if (!store.token && editionInfo.value != 'community') {
     emit('should-auth')
     return;
   }
@@ -526,13 +597,7 @@ function translate(transform, source) {
   //清空上传文件列表
   uploadRef.value.clearFiles();
   fileListShow.value = false;
-  if(translatesData.value.length > 0){
-    no_data.value = false;
-  }
 
-  if (source == "mobile") {
-    translateDialog.value = true
-  }
   let langs = []
   if (!Array.isArray(form.value.langs)) {
     langs = [form.value.langs]
@@ -568,45 +633,59 @@ function translate(transform, source) {
         lang: lang,
         percentage: 0,
         disabled: true,
-        link: ''
       }
 
       // return
-      process(uuid, source)
+      process(uuid)
       transalteFile(form.value).then(data => {
-        getTranslatesData(1, uuid)
+        if(editionInfo.value !== 'community'){
+          //有任何一条翻译成功就去请求
+          getTranslatesData(1, uuid)
+        }
       }).catch(data => {
         translating[uuid] = false
       })
     })
   })
+  //隐藏暂无数据
+  no_data.value = false;
   //循环结束，删除
   form.value.files = [];
 }
 
-function process(uuid, source) {
+function process(uuid) {
   if (!translating[uuid]) {
     return
   }
   transalteProcess({ uuid }).then(data => {
     if (data.code == 0) {
+      if (data.data.process != "") {
+        result.value[uuid]['percentage'] = Math.trunc(parseFloat(data.data.process) * 100);
+      }
       if (data.data.process == 1) {
-        if (source == "mobile") {
-          translateDialog.value = true
-        }
-        // Reflect.set(translating, uuid, false)
         translating[uuid] = false
         translated.value = true
         target_url.value = API_URL + data.data.url
         target_count.value = data.data.count
-        target_time.value = data.data.time
-        result.value[uuid]['link'] = API_URL + data.data.url
+        target_time.value = data.data.time;
         result.value[uuid]['disabled'] = false
+        //以下演示版存储
+        result.value[uuid]['status'] = 'done';
+        result.value[uuid]['spend_time'] = data.data.time;
+        result.value[uuid]['end_at'] =  data.data.end_time;
+        result.value[uuid]['process'] = 100;
+        result.value[uuid]['origin_filename'] = result.value[uuid]['file_name'];
+        result.value[uuid]['target_filepath'] = data.data.url;
+
+        //演示版执行
+        if(editionInfo.value == 'community'){
+          setTimeout(() => {
+            getTranslatesDataLocal(uuid);
+          }, 1000);
+        }
+        
       } else {
-        setTimeout(() => process(uuid, source), 1000)
-      }
-      if (data.data.process != "") {
-        result.value[uuid]['percentage'] = (parseFloat(data.data.process) * 100).toFixed(1)
+        setTimeout(() => process(uuid), 1000)
       }
     } else {
       ElMessage({
@@ -625,7 +704,7 @@ function changeFile() {
 }
 
 function beforeUpload(file) {
-  if (!store.token) {
+  if (!store.token && editionInfo.value != 'community') {
     emit('should-auth')
     return false
   }
@@ -687,6 +766,20 @@ function delUploadFile(file, files) {
   }
 }
 
+//演示版获取 缓存中的数据
+function getTranslatesDataLocal(uuid){
+  if(uuid){
+    const _obj = result.value[uuid];
+    delete result.value[uuid];
+    if(translatesData.value >= 19){
+      delete translatesData.value[translatesData.value.length-1]; 
+    }
+    translatesData.value.unshift(_obj);
+    localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
+    getCount();
+  }
+}
+
 //获取翻译列表数据的方法
 function getTranslatesData(page, uuid) {
   //删除翻译中的任务
@@ -730,31 +823,53 @@ function getStorage(){
   })
 }
 
-function delTransFile(id) {
+function delTransFile(id,index) {
   ElMessageBox.confirm('是否确定要删除？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    delTranslate(id).then((data) => {
-      if (data.code == 0) {
-        translatesData.value = translatesData.value.filter(item => item.id != id)
+    //演示版执行
+    if(editionInfo.value == 'community'){
+      translatesData.value.splice(index, 1);
+      localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
+      if(translatesData.value.length < 1){
+        no_data.value = true;
       }
-    })
+    }else{
+      delTranslate(id).then((data) => {
+        if (data.code == 0) {
+          translatesData.value = translatesData.value.filter(item => item.id != id);
+          if(translatesData.value.length < 1){
+            no_data.value = true;
+          }
+        }
+      })
+    }
   })
 }
 
+//全部删除的方法
 function delAllTransFile() {
   ElMessageBox.confirm('是否确定要删除全部？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    delAllTranslate().then((data) => {
-      if (data.code == 0) {
-        translatesData.value = []
-      }
-    })
+    //演示版执行
+    if(editionInfo.value == 'community'){
+      translatesData.value = [];
+      no_data.value = true;
+      localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
+    }else{
+      delAllTranslate().then((data) => {
+        if (data.code == 0) {
+          translatesData.value = [];
+          no_data.value = true;
+        }
+      })
+    }
+
   })
 }
 
@@ -795,6 +910,10 @@ const languageOptions = computed(() => {
   overflow-y: auto;
   padding-bottom: 90px;
 }
+.flex_box{
+  display: flex;
+  align-items: center;
+}
 // 滚动条样式
 .page-center::-webkit-scrollbar {
   width: 0px;
@@ -823,6 +942,16 @@ const languageOptions = computed(() => {
   padding: 28px 28px;
   box-sizing: border-box;
   margin-top: 20px;
+}
+.custom_btn{
+  background: #fff;
+  color: #055CF9;
+  height: 28px;
+  padding: 0 10px;
+  &:hover{
+    color: #055CF9;
+    background: var(--el-color-primary-light-9);
+  }
 }
 ::v-deep {
   .dropzone {
@@ -939,11 +1068,23 @@ const languageOptions = computed(() => {
       }
     }
   }
+  .filing{
+    width: 100%;
+    font-size: 12px;
+    text-align: center;
+    padding: 20px 0;
+    box-sizing: border-box;
+    line-height: 20px;
+    a{
+      color: #949DB0;
+      text-decoration: none;
+    }
+  }
 
   .custom_dialog {
     .el-dialog {
-      max-width: 600px;
-      padding: 20px 30px 20px 30px;
+      max-width: 800px;
+      padding: 30px 70px;
     }
     .el-dialog__title {
       color: #111111;
@@ -974,6 +1115,10 @@ const languageOptions = computed(() => {
       .btn_check {
         position: absolute;
         left: 0;
+        .el-tag{
+          height: 28px;
+          margin-left: 10px;
+        }
       }
     }
   }
@@ -1009,6 +1154,21 @@ const languageOptions = computed(() => {
         font-weight: bold;
         font-size: 16px;
         color: #000000;
+        .t_left{
+          display: flex;
+          align-items: center;
+          .tips{
+            margin-left: 30px;
+            font-size: 14px;
+            color: #666666;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            span,i{
+              color: #045CF9;
+            }
+          }
+        }
       }
       .t_right {
         display: flex;
@@ -1094,18 +1254,8 @@ const languageOptions = computed(() => {
           color: #ff9c00;
         }
       }
-      .icon_down {
-        margin-right: 21px;
-        color: #9BBEFD;
-        cursor: pointer;
-        span {
-          color: #055cf9;
-        }
-        &.actived {
-          span {
-            color: #9bbefd;
-          }
-        }
+      .icon_down::after{
+        content: none;
       }
     }
   }
@@ -1174,7 +1324,7 @@ const languageOptions = computed(() => {
       .t{
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: baseline;
         width: 100%;
       }
       .t_right{
@@ -1248,6 +1398,31 @@ const languageOptions = computed(() => {
         margin-bottom: 0!important;
       }
      }
+  }
+  .t_left{
+    display: inline-block!important;
+    .tips{
+      margin-top: 10px;
+      margin-left: 0!important;
+      font-size: 12px!important;
+    }
+  }
+  .no_data{
+    padding-bottom: 20px!important;
+  }
+
+  /*调整间距、字体大小*/
+  .upload_btn span{
+    font-size: 14px!important;
+  }
+  .dropzone .right_box .title{
+    font-size: 16px!important;
+  }
+  .custom_dialog .btn_box{
+    text-align: right!important;;
+  }
+  .translate-btn{
+    width: 90%!important;
   }
 }
 </style>

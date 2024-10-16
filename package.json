@@ -5,9 +5,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "demo": "vite build --mode demo",
-        "docker": "vite build --mode docker",
+        "build:dev": "vite build --mode development",
+        "build:com": "vite build --mode community",
+        "build:prod": "vite build --mode production",
+        "docker": "vite build --env-file ./.env.docker",
         "preview": "vite preview"
     },
     "dependencies": {
@@ -20,8 +21,10 @@
     },
     "devDependencies": {
         "@vitejs/plugin-vue": "^5.0.4",
+        "fast-glob": "^3.3.2",
         "sass": "^1.78.0",
         "sass-loader": "^16.0.1",
-        "vite": "^5.1.6"
+        "vite": "^5.1.6",
+        "vite-plugin-svg-icons": "^2.0.1"
     }
 }

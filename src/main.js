@@ -6,6 +6,7 @@ import ElementPlus from 'element-plus';
 import 'element-plus/theme-chalk/index.css';
 
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import 'virtual:svg-icons-register'
 
 const app=createApp(App)
 app.use(ElementPlus)
