@@ -30,7 +30,7 @@
               <span>翻译任务列表</span>
               <div class="tips" v-if="editionInfo == 'community'"><el-icon><SuccessFilled /></el-icon>已累计为用户成功翻译文件<span>{{transCount}}</span>份</div>
             </div>
-            
+
             <div class="t_right">
               <el-button type="text" class="phone_show" @click="downAllTransFile" v-if="editionInfo !== 'community' && translatesData.length > 0">全部下载</el-button>
               <el-button type="text" class="phone_show" @click="delAllTransFile" v-if="translatesData && translatesData.length > 0">全部删除</el-button>
@@ -221,7 +221,7 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf,.txt"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
@@ -261,7 +261,7 @@ const uploadRef = ref(null)
 const form = ref({
   files: [],
   server: store.level == 'vip' ? 'member' : 'openai',
-  api_url: "https://api.openai.com/",
+  api_url: "https://api.openai.com",
   api_key: "",
   model: "",
   backup_model: "",
@@ -535,15 +535,22 @@ function formReset(){
   let setting = translatesSettingData.value;
   if(setting.api_url){
     form.value.api_url = setting.api_url
+  }else{
+    form.value.api_url = 'https://api.openai.com'
   }
   if(setting.api_key){
     form.value.api_key = setting.api_key
+  }else{
+    form.value.api_key = '';
   }
-  models.value = setting.models
   form.value.model = setting.default_model
   form.value.backup_model = setting.default_backup
   form.value.prompt = setting.prompt
   form.value.threads = setting.threads
+
+  //清空以下数据
+  form.value.langs = [];
+  form.value.type = [];
 }
 
 //翻译设置确认
@@ -579,7 +586,7 @@ function translate(transform) {
     emit('should-auth')
     return;
   }
-  
+
   if (form.value.files.length <= 0) {
     ElMessage({
       message: '请上传文件',
@@ -593,7 +600,7 @@ function translate(transform) {
     emit('open-set')
     return;
   }
-  
+
   //清空上传文件列表
   uploadRef.value.clearFiles();
   fileListShow.value = false;
@@ -663,13 +670,11 @@ function process(uuid) {
         result.value[uuid]['percentage'] = Math.trunc(parseFloat(data.data.process) * 100);
       }
       if (data.data.process == 1) {
-        console.log(JSON.stringify(data.data));
         translating[uuid] = false
         translated.value = true
         target_url.value = API_URL + data.data.url
         target_count.value = data.data.count
         target_time.value = data.data.time;
-        console.log(result.value[uuid]);
         result.value[uuid]['disabled'] = false
         //以下演示版存储
         result.value[uuid]['status'] = 'done';
@@ -685,7 +690,7 @@ function process(uuid) {
             getTranslatesDataLocal(uuid);
           }, 1000);
         }
-        
+
       } else {
         setTimeout(() => process(uuid), 1000)
       }
@@ -774,7 +779,7 @@ function getTranslatesDataLocal(uuid){
     const _obj = result.value[uuid];
     delete result.value[uuid];
     if(translatesData.value >= 19){
-      delete translatesData.value[translatesData.value.length-1]; 
+      delete translatesData.value[translatesData.value.length-1];
     }
     translatesData.value.unshift(_obj);
     localStorage.setItem('TranslatesList',JSON.stringify(translatesData.value));
