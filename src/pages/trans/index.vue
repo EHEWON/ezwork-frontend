@@ -221,7 +221,7 @@ const langMultiSelected = ref(true)
 const formSetShow = ref(false);
 const no_data = ref(true)
 
-const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv"
+const accepts = ".docx,.xlsx,.pptx,.pdf,.txt,.csv,.md"
 const fileListShow = ref(false)
 const translating = {}
 const result = ref({})
