@@ -643,12 +643,8 @@ function translate(transform) {
       }
 
       // return
-      process(uuid)
       transalteFile(form.value).then(data => {
-        if(editionInfo.value !== 'community'){
-          //有任何一条翻译成功就去请求
-          getTranslatesData(1, uuid)
-        }
+        process(uuid)
       }).catch(data => {
         translating[uuid] = false
       })
@@ -667,9 +663,9 @@ function process(uuid) {
   transalteProcess({ uuid }).then(data => {
     if (data.code == 0) {
       if (data.data.process != "") {
-        result.value[uuid]['percentage'] = Math.trunc(parseFloat(data.data.process) * 100);
+        result.value[uuid]['percentage'] = Math.trunc(parseFloat(data.data.process));
       }
-      if (data.data.process == 1) {
+      if (data.data.process == 100) {
         translating[uuid] = false
         translated.value = true
         target_url.value = API_URL + data.data.url
@@ -689,10 +685,12 @@ function process(uuid) {
           setTimeout(() => {
             getTranslatesDataLocal(uuid);
           }, 1000);
+        }else{
+          getTranslatesData(1, uuid)
         }
 
       } else {
-        setTimeout(() => process(uuid), 1000)
+        setTimeout(() => process(uuid), 2000)
       }
     } else {
       ElMessage({
