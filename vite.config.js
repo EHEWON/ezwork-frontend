@@ -5,7 +5,6 @@ import path from 'path'
 const resolve = (dir) => path.resolve(process.cwd(), dir)
 
 // https://vitejs.dev/config/
-
 export default defineConfig({
     base: './', // 确保这里没有设置为 '/'
     plugins: [vue(),createSvgIconsPlugin({
